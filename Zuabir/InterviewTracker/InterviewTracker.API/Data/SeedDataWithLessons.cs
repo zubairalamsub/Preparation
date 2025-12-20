@@ -2123,6 +2123,1992 @@ public class OrderService
     }
 }",
                 Tags = new() { "LINQ", "Querying", "Collections" }
+            },
+
+            new() {
+                Title = "Delegates and Events",
+                Category = "Advanced",
+                Difficulty = "Medium",
+                KeyConcepts = "Delegates, multicast delegates, events, EventHandler, Action, Func, Predicate",
+                DotNetVersion = "1.0",
+                Lesson = @"# Delegates and Events
+
+## What is a Delegate?
+A delegate is a type-safe function pointer that holds a reference to a method.
+
+## Defining Delegates
+```csharp
+// Custom delegate declaration
+public delegate int MathOperation(int a, int b);
+
+// Using the delegate
+MathOperation add = (a, b) => a + b;
+MathOperation multiply = (a, b) => a * b;
+
+int result1 = add(5, 3);       // 8
+int result2 = multiply(5, 3);  // 15
+```
+
+## Built-in Delegates
+
+### Action - No return value
+```csharp
+// Action with no parameters
+Action greet = () => Console.WriteLine(""Hello!"");
+
+// Action with parameters
+Action<string> greetPerson = name => Console.WriteLine($""Hello, {name}!"");
+Action<int, int> printSum = (a, b) => Console.WriteLine(a + b);
+
+greet();                    // Hello!
+greetPerson(""John"");       // Hello, John!
+printSum(5, 3);             // 8
+```
+
+### Func - Returns a value
+```csharp
+// Func<TResult> - no params, returns TResult
+Func<int> getRandomNumber = () => new Random().Next(100);
+
+// Func<T, TResult> - one param, returns TResult
+Func<int, int> square = x => x * x;
+
+// Func<T1, T2, TResult> - two params, returns TResult
+Func<int, int, int> add = (a, b) => a + b;
+
+int random = getRandomNumber();  // 0-99
+int squared = square(5);         // 25
+int sum = add(3, 4);            // 7
+```
+
+### Predicate - Returns bool
+```csharp
+Predicate<int> isEven = x => x % 2 == 0;
+Predicate<string> isLong = s => s.Length > 10;
+
+bool result1 = isEven(4);              // true
+bool result2 = isLong(""Hello"");       // false
+```
+
+## Multicast Delegates
+```csharp
+Action<string> notify = null;
+
+notify += message => Console.WriteLine($""Email: {message}"");
+notify += message => Console.WriteLine($""SMS: {message}"");
+notify += message => Console.WriteLine($""Push: {message}"");
+
+notify(""Order shipped!"");
+// Output:
+// Email: Order shipped!
+// SMS: Order shipped!
+// Push: Order shipped!
+
+// Remove a handler
+notify -= message => Console.WriteLine($""SMS: {message}"");
+```
+
+## Events
+Events are a special kind of delegate designed for the publisher-subscriber pattern.
+
+```csharp
+public class Button
+{
+    // Event declaration
+    public event EventHandler<ClickEventArgs> Clicked;
+
+    // Protected method to raise the event
+    protected virtual void OnClicked(ClickEventArgs e)
+    {
+        Clicked?.Invoke(this, e);
+    }
+
+    public void Click()
+    {
+        OnClicked(new ClickEventArgs { ClickTime = DateTime.Now });
+    }
+}
+
+public class ClickEventArgs : EventArgs
+{
+    public DateTime ClickTime { get; set; }
+}
+
+// Usage
+var button = new Button();
+
+// Subscribe to event
+button.Clicked += (sender, e) =>
+{
+    Console.WriteLine($""Button clicked at {e.ClickTime}"");
+};
+
+button.Click();  // Raises the event
+```
+
+## Event vs Delegate
+| Feature | Delegate | Event |
+|---------|----------|-------|
+| Can invoke from outside class | Yes | No (only owner can) |
+| Can assign directly (=) | Yes | No (only += / -=) |
+| Encapsulation | Less | More |
+| Use case | Callbacks | Notifications |
+
+## Real-World Example: Order Processing
+```csharp
+public class OrderProcessor
+{
+    public event EventHandler<OrderEventArgs> OrderPlaced;
+    public event EventHandler<OrderEventArgs> OrderShipped;
+
+    public void ProcessOrder(Order order)
+    {
+        // Process order logic...
+        OnOrderPlaced(new OrderEventArgs { Order = order });
+    }
+
+    public void ShipOrder(Order order)
+    {
+        // Shipping logic...
+        OnOrderShipped(new OrderEventArgs { Order = order });
+    }
+
+    protected virtual void OnOrderPlaced(OrderEventArgs e)
+        => OrderPlaced?.Invoke(this, e);
+
+    protected virtual void OnOrderShipped(OrderEventArgs e)
+        => OrderShipped?.Invoke(this, e);
+}
+
+// Subscribers
+var processor = new OrderProcessor();
+
+processor.OrderPlaced += (s, e) =>
+    emailService.SendOrderConfirmation(e.Order);
+
+processor.OrderShipped += (s, e) =>
+    smsService.SendShippingNotification(e.Order);
+```",
+                CodeExample = @"// Complete example with custom event args
+public class StockMarket
+{
+    public event EventHandler<StockPriceChangedEventArgs> PriceChanged;
+
+    private decimal _price;
+    public decimal Price
+    {
+        get => _price;
+        set
+        {
+            var oldPrice = _price;
+            _price = value;
+            OnPriceChanged(new StockPriceChangedEventArgs
+            {
+                Symbol = ""MSFT"",
+                OldPrice = oldPrice,
+                NewPrice = value,
+                ChangePercent = oldPrice > 0 ? (value - oldPrice) / oldPrice * 100 : 0
+            });
+        }
+    }
+
+    protected virtual void OnPriceChanged(StockPriceChangedEventArgs e)
+    {
+        PriceChanged?.Invoke(this, e);
+    }
+}
+
+public class StockPriceChangedEventArgs : EventArgs
+{
+    public string Symbol { get; set; }
+    public decimal OldPrice { get; set; }
+    public decimal NewPrice { get; set; }
+    public decimal ChangePercent { get; set; }
+}
+
+// Usage
+var market = new StockMarket();
+
+market.PriceChanged += (sender, e) =>
+{
+    Console.WriteLine($""{e.Symbol}: ${e.OldPrice} -> ${e.NewPrice} ({e.ChangePercent:F2}%)"");
+};
+
+market.Price = 100m;  // MSFT: $0 -> $100 (0.00%)
+market.Price = 105m;  // MSFT: $100 -> $105 (5.00%)",
+                Tags = new() { "Delegates", "Events", "Callbacks", "Advanced" }
+            },
+
+            new() {
+                Title = "Generics Deep Dive",
+                Category = "Advanced",
+                Difficulty = "Medium",
+                KeyConcepts = "Generic classes, methods, constraints, covariance, contravariance, where clause",
+                DotNetVersion = "2.0",
+                Lesson = @"# Generics Deep Dive
+
+## What are Generics?
+Generics allow you to write type-safe code that works with any data type while maintaining compile-time type checking.
+
+## Generic Classes
+```csharp
+public class Repository<T> where T : class
+{
+    private readonly List<T> _items = new();
+
+    public void Add(T item) => _items.Add(item);
+    public T GetById(int index) => _items[index];
+    public IEnumerable<T> GetAll() => _items;
+    public int Count => _items.Count;
+}
+
+// Usage
+var userRepo = new Repository<User>();
+userRepo.Add(new User { Name = ""John"" });
+
+var orderRepo = new Repository<Order>();
+orderRepo.Add(new Order { Total = 99.99m });
+```
+
+## Generic Methods
+```csharp
+public class Utilities
+{
+    // Generic method
+    public T Max<T>(T a, T b) where T : IComparable<T>
+    {
+        return a.CompareTo(b) > 0 ? a : b;
+    }
+
+    // Generic method with multiple type parameters
+    public TResult Convert<TInput, TResult>(TInput input, Func<TInput, TResult> converter)
+    {
+        return converter(input);
+    }
+}
+
+// Usage
+var utils = new Utilities();
+int maxInt = utils.Max(5, 10);           // 10
+string maxStr = utils.Max(""apple"", ""banana"");  // ""banana""
+
+string result = utils.Convert(42, x => x.ToString());  // ""42""
+```
+
+## Generic Constraints
+
+### where T : class (Reference type)
+```csharp
+public class ReferenceRepository<T> where T : class
+{
+    public T FindOrDefault(Predicate<T> predicate)
+    {
+        // Can return null because T is a reference type
+        return default;  // null
+    }
+}
+```
+
+### where T : struct (Value type)
+```csharp
+public class ValueContainer<T> where T : struct
+{
+    private T? _value;  // Nullable value type
+
+    public void SetValue(T value) => _value = value;
+    public T GetValueOrDefault() => _value ?? default;
+}
+```
+
+### where T : new() (Parameterless constructor)
+```csharp
+public class Factory<T> where T : new()
+{
+    public T Create() => new T();  // Can instantiate T
+}
+```
+
+### where T : BaseClass
+```csharp
+public class EntityRepository<T> where T : Entity
+{
+    public void Save(T entity)
+    {
+        entity.Id = Guid.NewGuid();  // Entity has Id property
+        entity.CreatedAt = DateTime.UtcNow;
+    }
+}
+```
+
+### where T : IInterface
+```csharp
+public class Sorter<T> where T : IComparable<T>
+{
+    public T[] Sort(T[] items)
+    {
+        Array.Sort(items);  // Uses IComparable<T>
+        return items;
+    }
+}
+```
+
+### Multiple Constraints
+```csharp
+public class Service<T> where T : class, IEntity, IValidatable, new()
+{
+    public T CreateAndValidate()
+    {
+        var entity = new T();
+        entity.Validate();
+        return entity;
+    }
+}
+```
+
+## Covariance and Contravariance
+
+### Covariance (out) - Can use derived type
+```csharp
+public interface IReadOnlyRepository<out T>
+{
+    T GetById(int id);
+    IEnumerable<T> GetAll();
+}
+
+// Animal is base, Dog is derived
+IReadOnlyRepository<Dog> dogRepo = new DogRepository();
+IReadOnlyRepository<Animal> animalRepo = dogRepo;  // Covariance allows this
+```
+
+### Contravariance (in) - Can use base type
+```csharp
+public interface IComparer<in T>
+{
+    int Compare(T x, T y);
+}
+
+// Can use AnimalComparer where DogComparer is expected
+IComparer<Animal> animalComparer = new AnimalComparer();
+IComparer<Dog> dogComparer = animalComparer;  // Contravariance allows this
+```
+
+## Generic Interfaces in .NET
+```csharp
+// Common generic interfaces
+IEnumerable<T>      // Iteration
+ICollection<T>      // Add, Remove, Count
+IList<T>           // Index access
+IDictionary<TKey, TValue>  // Key-value pairs
+IComparable<T>     // Comparison
+IEquatable<T>      // Equality
+IComparer<T>       // Custom comparison
+```",
+                CodeExample = @"// Advanced generic pattern: Specification pattern
+public interface ISpecification<T>
+{
+    bool IsSatisfiedBy(T entity);
+    ISpecification<T> And(ISpecification<T> other);
+    ISpecification<T> Or(ISpecification<T> other);
+}
+
+public abstract class Specification<T> : ISpecification<T>
+{
+    public abstract bool IsSatisfiedBy(T entity);
+
+    public ISpecification<T> And(ISpecification<T> other)
+        => new AndSpecification<T>(this, other);
+
+    public ISpecification<T> Or(ISpecification<T> other)
+        => new OrSpecification<T>(this, other);
+}
+
+public class AndSpecification<T> : Specification<T>
+{
+    private readonly ISpecification<T> _left;
+    private readonly ISpecification<T> _right;
+
+    public AndSpecification(ISpecification<T> left, ISpecification<T> right)
+    {
+        _left = left;
+        _right = right;
+    }
+
+    public override bool IsSatisfiedBy(T entity)
+        => _left.IsSatisfiedBy(entity) && _right.IsSatisfiedBy(entity);
+}
+
+// Product specifications
+public class InStockSpecification : Specification<Product>
+{
+    public override bool IsSatisfiedBy(Product product)
+        => product.StockQuantity > 0;
+}
+
+public class PriceRangeSpecification : Specification<Product>
+{
+    private readonly decimal _min;
+    private readonly decimal _max;
+
+    public PriceRangeSpecification(decimal min, decimal max)
+    {
+        _min = min;
+        _max = max;
+    }
+
+    public override bool IsSatisfiedBy(Product product)
+        => product.Price >= _min && product.Price <= _max;
+}
+
+// Usage
+var inStock = new InStockSpecification();
+var affordable = new PriceRangeSpecification(10, 100);
+var spec = inStock.And(affordable);
+
+var matchingProducts = products.Where(p => spec.IsSatisfiedBy(p));",
+                Tags = new() { "Generics", "Type Safety", "Constraints", "Advanced" }
+            },
+
+            new() {
+                Title = "Reflection and Attributes",
+                Category = "Advanced",
+                Difficulty = "Hard",
+                KeyConcepts = "Type inspection, GetType(), typeof(), custom attributes, Activator, dynamic loading",
+                DotNetVersion = "1.0",
+                Lesson = @"# Reflection and Attributes
+
+## What is Reflection?
+Reflection allows you to inspect and manipulate types, methods, properties, and other metadata at runtime.
+
+## Getting Type Information
+
+### Using typeof() and GetType()
+```csharp
+// typeof - compile-time, for type names
+Type type1 = typeof(string);
+Type type2 = typeof(List<int>);
+
+// GetType() - runtime, for instances
+string text = ""Hello"";
+Type type3 = text.GetType();
+
+// Type comparison
+bool isString = type3 == typeof(string);  // true
+```
+
+## Inspecting Members
+
+### Properties
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    private string Secret { get; set; }
+}
+
+Type type = typeof(Person);
+
+// Get all public properties
+PropertyInfo[] publicProps = type.GetProperties();
+foreach (var prop in publicProps)
+{
+    Console.WriteLine($""{prop.Name}: {prop.PropertyType.Name}"");
+}
+// Output: Name: String, Age: Int32
+
+// Get private properties too
+PropertyInfo[] allProps = type.GetProperties(
+    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+```
+
+### Methods
+```csharp
+MethodInfo[] methods = type.GetMethods();
+foreach (var method in methods)
+{
+    var parameters = method.GetParameters();
+    Console.WriteLine($""{method.Name}({string.Join("", "", parameters.Select(p => p.ParameterType.Name))})"");
+}
+```
+
+## Creating Instances Dynamically
+
+### Using Activator
+```csharp
+// Create instance with parameterless constructor
+object instance = Activator.CreateInstance(typeof(Person));
+
+// Create instance with parameters
+object instance2 = Activator.CreateInstance(
+    typeof(Person),
+    new object[] { ""John"", 30 });
+
+// Generic version
+Person person = Activator.CreateInstance<Person>();
+```
+
+### Invoking Methods
+```csharp
+Person person = new Person { Name = ""John"" };
+Type type = typeof(Person);
+
+// Get and invoke a method
+MethodInfo method = type.GetMethod(""ToString"");
+object result = method.Invoke(person, null);
+
+// Set property value
+PropertyInfo nameProp = type.GetProperty(""Name"");
+nameProp.SetValue(person, ""Jane"");
+
+// Get property value
+string name = (string)nameProp.GetValue(person);
+```
+
+## Custom Attributes
+
+### Creating Custom Attributes
+```csharp
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
+public class ValidationAttribute : Attribute
+{
+    public string ErrorMessage { get; set; }
+    public bool Required { get; set; }
+
+    public ValidationAttribute(string errorMessage)
+    {
+        ErrorMessage = errorMessage;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Property)]
+public class MaxLengthAttribute : Attribute
+{
+    public int Length { get; }
+
+    public MaxLengthAttribute(int length)
+    {
+        Length = length;
+    }
+}
+```
+
+### Applying Attributes
+```csharp
+[Validation(""User validation failed"")]
+public class User
+{
+    [Validation(""Name is required"", Required = true)]
+    [MaxLength(100)]
+    public string Name { get; set; }
+
+    [Validation(""Email is required"", Required = true)]
+    public string Email { get; set; }
+}
+```
+
+### Reading Attributes at Runtime
+```csharp
+Type type = typeof(User);
+
+// Get class-level attributes
+var classAttrs = type.GetCustomAttributes<ValidationAttribute>();
+
+// Get property-level attributes
+foreach (var prop in type.GetProperties())
+{
+    var validation = prop.GetCustomAttribute<ValidationAttribute>();
+    if (validation?.Required == true)
+    {
+        Console.WriteLine($""{prop.Name} is required"");
+    }
+
+    var maxLength = prop.GetCustomAttribute<MaxLengthAttribute>();
+    if (maxLength != null)
+    {
+        Console.WriteLine($""{prop.Name} max length: {maxLength.Length}"");
+    }
+}
+```
+
+## Performance Considerations
+```csharp
+// Reflection is SLOW! Cache when possible
+private static readonly PropertyInfo _nameProp = typeof(Person).GetProperty(""Name"");
+
+// Better: Use compiled expressions
+private static readonly Func<Person, string> _getName =
+    (Func<Person, string>)Delegate.CreateDelegate(
+        typeof(Func<Person, string>),
+        typeof(Person).GetProperty(""Name"").GetGetMethod());
+
+// Or use source generators in modern .NET
+```",
+                CodeExample = @"// Practical example: Simple object validator using reflection
+public class Validator
+{
+    public ValidationResult Validate<T>(T obj)
+    {
+        var result = new ValidationResult();
+        var type = typeof(T);
+
+        foreach (var prop in type.GetProperties())
+        {
+            var value = prop.GetValue(obj);
+
+            // Check Required
+            var required = prop.GetCustomAttribute<RequiredAttribute>();
+            if (required != null && value == null)
+            {
+                result.Errors.Add($""{prop.Name} is required"");
+            }
+
+            // Check MaxLength
+            var maxLength = prop.GetCustomAttribute<MaxLengthAttribute>();
+            if (maxLength != null && value is string str && str.Length > maxLength.Length)
+            {
+                result.Errors.Add($""{prop.Name} exceeds max length of {maxLength.Length}"");
+            }
+
+            // Check Range
+            var range = prop.GetCustomAttribute<RangeAttribute>();
+            if (range != null && value is IComparable comparable)
+            {
+                if (comparable.CompareTo(range.Min) < 0 || comparable.CompareTo(range.Max) > 0)
+                {
+                    result.Errors.Add($""{prop.Name} must be between {range.Min} and {range.Max}"");
+                }
+            }
+        }
+
+        return result;
+    }
+}
+
+// Usage
+var user = new User { Name = """", Email = null, Age = 150 };
+var validator = new Validator();
+var result = validator.Validate(user);
+
+if (!result.IsValid)
+{
+    foreach (var error in result.Errors)
+        Console.WriteLine(error);
+}",
+                Tags = new() { "Reflection", "Attributes", "Metadata", "Advanced" }
+            },
+
+            new() {
+                Title = "Expression Trees",
+                Category = "Advanced",
+                Difficulty = "Hard",
+                KeyConcepts = "Expression<T>, lambda to expression tree, building expressions, IQueryable",
+                DotNetVersion = "3.5",
+                Lesson = @"# Expression Trees
+
+## What are Expression Trees?
+Expression trees represent code as a data structure that can be examined, modified, or compiled at runtime.
+
+## Expression vs Delegate
+```csharp
+// Delegate - compiled IL code
+Func<int, int, int> addDelegate = (a, b) => a + b;
+
+// Expression - data structure representing the code
+Expression<Func<int, int, int>> addExpression = (a, b) => a + b;
+
+// Expression can be compiled to delegate
+Func<int, int, int> compiled = addExpression.Compile();
+int result = compiled(2, 3);  // 5
+```
+
+## Why Use Expression Trees?
+1. **LINQ to SQL/EF** - Translates C# to SQL
+2. **Dynamic query building** - Build queries at runtime
+3. **Code analysis** - Examine code structure
+4. **Code generation** - Generate optimized code
+
+## Examining Expression Trees
+```csharp
+Expression<Func<int, bool>> expr = x => x > 5;
+
+// Examine the tree
+Console.WriteLine(expr.Body);           // (x > 5)
+Console.WriteLine(expr.Body.NodeType);  // GreaterThan
+Console.WriteLine(expr.Parameters[0]);  // x
+
+// Cast to binary expression
+var binary = (BinaryExpression)expr.Body;
+Console.WriteLine(binary.Left);   // x
+Console.WriteLine(binary.Right);  // 5
+```
+
+## Building Expression Trees Manually
+```csharp
+// Build: x => x > 5
+ParameterExpression param = Expression.Parameter(typeof(int), ""x"");
+ConstantExpression constant = Expression.Constant(5, typeof(int));
+BinaryExpression body = Expression.GreaterThan(param, constant);
+
+Expression<Func<int, bool>> expr =
+    Expression.Lambda<Func<int, bool>>(body, param);
+
+// Compile and use
+Func<int, bool> func = expr.Compile();
+bool result = func(10);  // true
+```
+
+## Dynamic Query Building
+```csharp
+public class QueryBuilder<T>
+{
+    public Expression<Func<T, bool>> BuildFilter(
+        string propertyName,
+        object value,
+        string operation = ""Equals"")
+    {
+        var param = Expression.Parameter(typeof(T), ""x"");
+        var property = Expression.Property(param, propertyName);
+        var constant = Expression.Constant(value);
+
+        Expression body = operation switch
+        {
+            ""Equals"" => Expression.Equal(property, constant),
+            ""NotEquals"" => Expression.NotEqual(property, constant),
+            ""GreaterThan"" => Expression.GreaterThan(property, constant),
+            ""LessThan"" => Expression.LessThan(property, constant),
+            ""Contains"" => Expression.Call(property,
+                typeof(string).GetMethod(""Contains"", new[] { typeof(string) }),
+                constant),
+            _ => throw new NotSupportedException()
+        };
+
+        return Expression.Lambda<Func<T, bool>>(body, param);
+    }
+}
+
+// Usage
+var builder = new QueryBuilder<Product>();
+var filter = builder.BuildFilter(""Price"", 100m, ""GreaterThan"");
+var expensiveProducts = products.AsQueryable().Where(filter);
+```
+
+## Entity Framework and IQueryable
+```csharp
+// This works because EF translates the expression to SQL
+IQueryable<Product> query = dbContext.Products
+    .Where(p => p.Price > 100 && p.Category == ""Electronics"");
+
+// SQL generated:
+// SELECT * FROM Products WHERE Price > 100 AND Category = 'Electronics'
+
+// This would NOT translate (uses Func, not Expression)
+Func<Product, bool> filter = p => p.Price > 100;
+var result = dbContext.Products.Where(filter);  // Fetches ALL then filters in memory!
+```
+
+## Combining Expressions
+```csharp
+public static class ExpressionExtensions
+{
+    public static Expression<Func<T, bool>> And<T>(
+        this Expression<Func<T, bool>> left,
+        Expression<Func<T, bool>> right)
+    {
+        var param = Expression.Parameter(typeof(T), ""x"");
+        var body = Expression.AndAlso(
+            Expression.Invoke(left, param),
+            Expression.Invoke(right, param));
+        return Expression.Lambda<Func<T, bool>>(body, param);
+    }
+
+    public static Expression<Func<T, bool>> Or<T>(
+        this Expression<Func<T, bool>> left,
+        Expression<Func<T, bool>> right)
+    {
+        var param = Expression.Parameter(typeof(T), ""x"");
+        var body = Expression.OrElse(
+            Expression.Invoke(left, param),
+            Expression.Invoke(right, param));
+        return Expression.Lambda<Func<T, bool>>(body, param);
+    }
+}
+
+// Usage
+Expression<Func<Product, bool>> priceFilter = p => p.Price > 50;
+Expression<Func<Product, bool>> stockFilter = p => p.InStock;
+
+var combined = priceFilter.And(stockFilter);
+```",
+                CodeExample = @"// Advanced: Building a dynamic sort expression
+public static class QueryableExtensions
+{
+    public static IOrderedQueryable<T> OrderByProperty<T>(
+        this IQueryable<T> source,
+        string propertyName,
+        bool descending = false)
+    {
+        var type = typeof(T);
+        var property = type.GetProperty(propertyName);
+        var parameter = Expression.Parameter(type, ""x"");
+        var propertyAccess = Expression.Property(parameter, property);
+        var keySelector = Expression.Lambda(propertyAccess, parameter);
+
+        var methodName = descending ? ""OrderByDescending"" : ""OrderBy"";
+
+        var method = typeof(Queryable).GetMethods()
+            .First(m => m.Name == methodName && m.GetParameters().Length == 2)
+            .MakeGenericMethod(type, property.PropertyType);
+
+        return (IOrderedQueryable<T>)method.Invoke(null, new object[] { source, keySelector });
+    }
+}
+
+// Usage - sort by any property at runtime
+var products = dbContext.Products.AsQueryable();
+
+string sortBy = ""Price"";  // From user input
+bool desc = true;
+
+var sorted = products.OrderByProperty(sortBy, desc);
+// Generates: SELECT * FROM Products ORDER BY Price DESC",
+                Tags = new() { "Expressions", "LINQ", "Dynamic", "Advanced" }
+            },
+
+            new() {
+                Title = "Span<T> and Memory<T>",
+                Category = "Performance",
+                Difficulty = "Hard",
+                KeyConcepts = "Stack allocation, slicing without copying, ReadOnlySpan, Memory<T>, stackalloc",
+                DotNetVersion = "7.0",
+                Lesson = @"# Span<T> and Memory<T>
+
+## What is Span<T>?
+Span<T> is a stack-only type that provides a type-safe, memory-safe view over contiguous memory without copying.
+
+## Why Use Span<T>?
+1. **Zero allocations** - No heap allocation for slicing
+2. **Performance** - Direct memory access
+3. **Safety** - Bounds checking included
+4. **Unified API** - Works with arrays, strings, native memory
+
+## Basic Usage
+```csharp
+// Create from array
+int[] array = { 1, 2, 3, 4, 5 };
+Span<int> span = array;
+
+// Slice without copying!
+Span<int> slice = span.Slice(1, 3);  // { 2, 3, 4 }
+slice[0] = 99;  // Modifies original array!
+
+Console.WriteLine(array[1]);  // 99
+
+// Create from string (ReadOnlySpan)
+string text = ""Hello, World!"";
+ReadOnlySpan<char> chars = text.AsSpan();
+ReadOnlySpan<char> hello = chars.Slice(0, 5);  // ""Hello""
+```
+
+## Stack Allocation with stackalloc
+```csharp
+// Allocate on stack - no GC pressure!
+Span<int> numbers = stackalloc int[100];
+
+for (int i = 0; i < numbers.Length; i++)
+{
+    numbers[i] = i * i;
+}
+
+// Use Span methods
+int sum = 0;
+foreach (int n in numbers)
+    sum += n;
+```
+
+## String Parsing Without Allocations
+```csharp
+// Traditional - allocates substrings
+public (string key, string value) ParseTraditional(string input)
+{
+    int index = input.IndexOf('=');
+    return (input.Substring(0, index), input.Substring(index + 1));
+}
+
+// With Span - zero allocations
+public (ReadOnlySpan<char> key, ReadOnlySpan<char> value) ParseWithSpan(ReadOnlySpan<char> input)
+{
+    int index = input.IndexOf('=');
+    return (input.Slice(0, index), input.Slice(index + 1));
+}
+
+// Even better - parse numbers directly
+public int ParseNumber(ReadOnlySpan<char> input)
+{
+    return int.Parse(input);  // No string allocation!
+}
+```
+
+## Memory<T> vs Span<T>
+```csharp
+// Span<T> - stack only, cannot be stored in fields, cannot be used in async
+public ref struct SpanExample  // ref struct = stack only
+{
+    public Span<int> Data;  // OK - same restrictions
+}
+
+// Memory<T> - can be stored, used in async
+public class MemoryExample
+{
+    private Memory<int> _data;  // OK - can store
+
+    public async Task ProcessAsync(Memory<int> data)
+    {
+        _data = data;  // OK
+        await Task.Delay(100);
+        var span = _data.Span;  // Get Span when needed
+        // Process...
+    }
+}
+```
+
+## Span Limitations
+```csharp
+// ❌ Cannot store Span in class field
+public class Bad
+{
+    Span<int> _span;  // Compiler error!
+}
+
+// ❌ Cannot use Span in async methods
+public async Task BadAsync(Span<int> span)  // Error!
+{
+    await Task.Delay(100);
+}
+
+// ❌ Cannot use Span in lambda captures
+Span<int> span = stackalloc int[10];
+var func = () => span[0];  // Error!
+
+// ✅ Use Memory<T> for these scenarios
+```
+
+## ArrayPool for Reusable Buffers
+```csharp
+// Rent from pool instead of allocating
+var pool = ArrayPool<byte>.Shared;
+byte[] buffer = pool.Rent(1024);  // May be larger
+
+try
+{
+    Span<byte> span = buffer.AsSpan(0, 1024);
+    // Use span...
+}
+finally
+{
+    pool.Return(buffer);  // Return to pool
+}
+```
+
+## Performance Comparison
+```csharp
+// Benchmark results (typical):
+// Traditional substring parsing: 150ns, 64 bytes allocated
+// Span-based parsing: 15ns, 0 bytes allocated
+// 10x faster, zero allocations!
+```",
+                CodeExample = @"// High-performance CSV parser using Span
+public class CsvParser
+{
+    public void ParseLine(ReadOnlySpan<char> line, Span<Range> fields)
+    {
+        int fieldIndex = 0;
+        int start = 0;
+
+        for (int i = 0; i < line.Length && fieldIndex < fields.Length; i++)
+        {
+            if (line[i] == ',')
+            {
+                fields[fieldIndex++] = start..i;
+                start = i + 1;
+            }
+        }
+
+        // Last field
+        if (fieldIndex < fields.Length)
+        {
+            fields[fieldIndex] = start..line.Length;
+        }
+    }
+
+    public void ProcessCsv(ReadOnlySpan<char> csv)
+    {
+        Span<Range> fields = stackalloc Range[10];  // Max 10 columns
+
+        foreach (var lineRange in csv.Split('\n'))
+        {
+            var line = csv[lineRange];
+            ParseLine(line, fields);
+
+            // Access fields without allocations
+            var firstName = csv[fields[0]];
+            var lastName = csv[fields[1]];
+            var ageSpan = csv[fields[2]];
+
+            if (int.TryParse(ageSpan, out int age))
+            {
+                // Process...
+            }
+        }
+    }
+}
+
+// Extension for splitting spans
+public static class SpanExtensions
+{
+    public ref struct SpanSplitEnumerator
+    {
+        private ReadOnlySpan<char> _remaining;
+        private readonly char _separator;
+
+        public SpanSplitEnumerator(ReadOnlySpan<char> span, char separator)
+        {
+            _remaining = span;
+            _separator = separator;
+            Current = default;
+        }
+
+        public Range Current { get; private set; }
+
+        public bool MoveNext()
+        {
+            if (_remaining.IsEmpty) return false;
+
+            int index = _remaining.IndexOf(_separator);
+            if (index == -1)
+            {
+                Current = ..;
+                _remaining = default;
+            }
+            else
+            {
+                Current = ..index;
+                _remaining = _remaining[(index + 1)..];
+            }
+            return true;
+        }
+    }
+}",
+                Tags = new() { "Performance", "Memory", "Span", "Advanced" }
+            },
+
+            new() {
+                Title = "Pattern Matching",
+                Category = "Modern C#",
+                Difficulty = "Medium",
+                KeyConcepts = "Type patterns, property patterns, switch expressions, when clauses, relational patterns",
+                DotNetVersion = "7.0",
+                Lesson = @"# Pattern Matching in C#
+
+## Overview
+Pattern matching allows you to test values against patterns and extract information when there's a match.
+
+## Type Patterns
+```csharp
+object obj = ""Hello"";
+
+// is expression with type pattern
+if (obj is string s)
+{
+    Console.WriteLine(s.ToUpper());  // s is already typed
+}
+
+// Negation pattern
+if (obj is not null)
+{
+    Console.WriteLine(obj.ToString());
+}
+
+// Switch with type patterns
+string Describe(object obj) => obj switch
+{
+    int i => $""Integer: {i}"",
+    string s => $""String: {s}"",
+    List<int> list => $""List with {list.Count} items"",
+    null => ""null"",
+    _ => ""Unknown""
+};
+```
+
+## Property Patterns
+```csharp
+public record Person(string Name, int Age, Address Address);
+public record Address(string City, string Country);
+
+// Property pattern in if statement
+if (person is { Age: > 18, Address.Country: ""USA"" })
+{
+    Console.WriteLine(""Adult in USA"");
+}
+
+// Property pattern in switch
+string Categorize(Person person) => person switch
+{
+    { Age: < 13 } => ""Child"",
+    { Age: < 20 } => ""Teenager"",
+    { Age: < 65 } => ""Adult"",
+    { Age: >= 65 } => ""Senior"",
+    _ => ""Unknown""
+};
+
+// Nested property patterns
+string GetLocation(Person person) => person switch
+{
+    { Address: { City: ""NYC"", Country: ""USA"" } } => ""New York City"",
+    { Address: { Country: ""USA"" } } => ""Somewhere in USA"",
+    { Address: null } => ""No address"",
+    _ => ""International""
+};
+```
+
+## Relational Patterns
+```csharp
+string GetGrade(int score) => score switch
+{
+    >= 90 => ""A"",
+    >= 80 => ""B"",
+    >= 70 => ""C"",
+    >= 60 => ""D"",
+    < 60 => ""F""
+};
+
+// Combining with and/or
+string Categorize(int value) => value switch
+{
+    > 0 and < 10 => ""Single digit positive"",
+    >= 10 and <= 100 => ""Two digits"",
+    < 0 or > 1000 => ""Out of range"",
+    _ => ""Other""
+};
+```
+
+## Tuple Patterns
+```csharp
+string GetQuadrant(int x, int y) => (x, y) switch
+{
+    ( > 0, > 0) => ""Q1"",
+    ( < 0, > 0) => ""Q2"",
+    ( < 0, < 0) => ""Q3"",
+    ( > 0, < 0) => ""Q4"",
+    (0, 0) => ""Origin"",
+    (_, 0) => ""X-axis"",
+    (0, _) => ""Y-axis""
+};
+
+// State machine with tuple pattern
+string GetState(bool isConnected, bool hasData) => (isConnected, hasData) switch
+{
+    (false, _) => ""Disconnected"",
+    (true, false) => ""Connected, no data"",
+    (true, true) => ""Ready""
+};
+```
+
+## List Patterns (C# 11+)
+```csharp
+int[] numbers = { 1, 2, 3, 4, 5 };
+
+// Match specific elements
+if (numbers is [1, 2, 3, 4, 5])
+    Console.WriteLine(""Exact match"");
+
+// Match with discard
+if (numbers is [1, _, 3, _, 5])
+    Console.WriteLine(""Alternating pattern"");
+
+// Slice pattern
+if (numbers is [var first, .. var middle, var last])
+    Console.WriteLine($""First: {first}, Last: {last}, Middle count: {middle.Length}"");
+
+// Empty and single element
+string Describe(int[] arr) => arr switch
+{
+    [] => ""Empty"",
+    [var single] => $""Single: {single}"",
+    [var first, var second] => $""Pair: {first}, {second}"",
+    [var head, .. var tail] => $""Head: {head}, Tail length: {tail.Length}""
+};
+```
+
+## when Clauses (Guards)
+```csharp
+string Classify(object obj) => obj switch
+{
+    int i when i < 0 => ""Negative"",
+    int i when i == 0 => ""Zero"",
+    int i when i > 0 => ""Positive"",
+    string s when s.Length == 0 => ""Empty string"",
+    string s when s.Length < 10 => ""Short string"",
+    string s => ""Long string"",
+    _ => ""Other""
+};
+
+// Complex guard conditions
+decimal CalculateDiscount(Order order) => order switch
+{
+    { Total: > 1000 } when order.Customer.IsPremium => 0.20m,
+    { Total: > 1000 } => 0.10m,
+    { Total: > 500 } when order.Customer.IsPremium => 0.10m,
+    { Total: > 500 } => 0.05m,
+    _ => 0m
+};
+```
+
+## Combining Patterns
+```csharp
+bool IsValidUser(User user) => user is
+{
+    Name: not null and { Length: > 0 },
+    Age: >= 18 and <= 120,
+    Email: string email
+} && email.Contains('@');
+
+// Or pattern
+if (obj is string or StringBuilder)
+{
+    Console.WriteLine(""Text type"");
+}
+```",
+                CodeExample = @"// Real-world example: Order processing with pattern matching
+public record Order(
+    string OrderId,
+    OrderStatus Status,
+    decimal Total,
+    Customer Customer,
+    List<OrderItem> Items);
+
+public record Customer(string Name, bool IsPremium, int LoyaltyPoints);
+public record OrderItem(string ProductId, int Quantity, decimal Price);
+
+public enum OrderStatus { Pending, Processing, Shipped, Delivered, Cancelled }
+
+public class OrderProcessor
+{
+    public string ProcessOrder(Order order) => order switch
+    {
+        // Cancelled orders
+        { Status: OrderStatus.Cancelled } => ""Order was cancelled"",
+
+        // Empty orders
+        { Items: [] } => ""Cannot process empty order"",
+
+        // Premium customer with large order
+        { Customer.IsPremium: true, Total: > 500 } =>
+            $""Priority processing for premium customer. 20% discount applied."",
+
+        // Large orders from regular customers
+        { Total: > 1000, Customer.LoyaltyPoints: var points } when points > 100 =>
+            $""Large order with {points} loyalty points. 15% discount."",
+
+        // Standard processing
+        { Status: OrderStatus.Pending, Items: [var single] } =>
+            $""Processing single item order: {single.ProductId}"",
+
+        { Status: OrderStatus.Pending, Items: [var first, .. var rest] } =>
+            $""Processing order with {rest.Length + 1} items, starting with {first.ProductId}"",
+
+        // Already processing
+        { Status: OrderStatus.Processing or OrderStatus.Shipped } =>
+            ""Order is already being processed"",
+
+        _ => ""Standard processing""
+    };
+
+    public decimal CalculateFinalPrice(Order order) => order switch
+    {
+        { Customer.IsPremium: true, Total: var t } => t * 0.8m,  // 20% off
+        { Customer.LoyaltyPoints: > 500, Total: var t } => t * 0.85m,  // 15% off
+        { Total: > 1000 } => order.Total * 0.9m,  // 10% off
+        { Total: > 500 } => order.Total * 0.95m,  // 5% off
+        _ => order.Total
+    };
+}",
+                Tags = new() { "Pattern Matching", "Switch", "Modern C#", "Advanced" }
+            },
+
+            new() {
+                Title = "Records and Init-Only Properties",
+                Category = "Modern C#",
+                Difficulty = "Easy",
+                KeyConcepts = "record types, positional records, init accessors, with expressions, value equality",
+                DotNetVersion = "9.0",
+                Lesson = @"# Records and Init-Only Properties
+
+## What are Records?
+Records are reference types that provide built-in value-based equality, immutability support, and concise syntax.
+
+## Record Declaration
+```csharp
+// Positional record (recommended for simple DTOs)
+public record Person(string Name, int Age);
+
+// Equivalent to:
+public record Person
+{
+    public string Name { get; init; }
+    public int Age { get; init; }
+
+    public Person(string name, int age)
+    {
+        Name = name;
+        Age = age;
+    }
+
+    public void Deconstruct(out string name, out int age)
+    {
+        name = Name;
+        age = Age;
+    }
+}
+```
+
+## Value Equality
+```csharp
+// Records compare by value, not reference
+var person1 = new Person(""John"", 30);
+var person2 = new Person(""John"", 30);
+
+Console.WriteLine(person1 == person2);     // true (value equality)
+Console.WriteLine(person1.Equals(person2)); // true
+
+// Classes compare by reference
+class PersonClass { public string Name; public int Age; }
+var p1 = new PersonClass { Name = ""John"", Age = 30 };
+var p2 = new PersonClass { Name = ""John"", Age = 30 };
+Console.WriteLine(p1 == p2);  // false (different references)
+```
+
+## Init-Only Properties
+```csharp
+public class Product
+{
+    public string Name { get; init; }  // Can only be set during initialization
+    public decimal Price { get; init; }
+}
+
+// Can set during object initialization
+var product = new Product { Name = ""Widget"", Price = 9.99m };
+
+// Cannot modify after
+product.Name = ""New Name"";  // Compiler error!
+```
+
+## With Expressions (Non-Destructive Mutation)
+```csharp
+var original = new Person(""John"", 30);
+
+// Create a copy with modified properties
+var older = original with { Age = 31 };
+
+Console.WriteLine(original.Age);  // 30 (unchanged)
+Console.WriteLine(older.Age);     // 31
+
+// Copy with multiple changes
+var updated = original with { Name = ""Jane"", Age = 25 };
+```
+
+## Record Inheritance
+```csharp
+public record Person(string Name, int Age);
+public record Employee(string Name, int Age, string Department) : Person(Name, Age);
+public record Manager(string Name, int Age, string Department, int TeamSize)
+    : Employee(Name, Age, Department);
+
+// Equality includes type
+var person = new Person(""John"", 30);
+var employee = new Employee(""John"", 30, ""IT"");
+
+Console.WriteLine(person == employee);  // false (different types)
+```
+
+## Record Structs (C# 10+)
+```csharp
+// Record struct - value type with record features
+public readonly record struct Point(int X, int Y);
+
+// Mutable record struct
+public record struct MutablePoint(int X, int Y);
+
+var p1 = new Point(1, 2);
+var p2 = new Point(1, 2);
+Console.WriteLine(p1 == p2);  // true
+
+// Stack allocated, no heap allocation
+Span<Point> points = stackalloc Point[100];
+```
+
+## Adding Methods to Records
+```csharp
+public record Person(string FirstName, string LastName, DateTime BirthDate)
+{
+    // Computed property
+    public string FullName => $""{FirstName} {LastName}"";
+
+    public int Age => DateTime.Now.Year - BirthDate.Year;
+
+    // Methods
+    public bool IsAdult() => Age >= 18;
+
+    // Override ToString
+    public override string ToString() => $""{FullName}, Age {Age}"";
+}
+```
+
+## Primary Constructors (C# 12)
+```csharp
+// Primary constructor for classes (C# 12)
+public class Service(ILogger logger, IRepository repo)
+{
+    public void DoWork()
+    {
+        logger.Log(""Starting work"");
+        repo.Save(new Data());
+    }
+}
+
+// Equivalent to:
+public class Service
+{
+    private readonly ILogger _logger;
+    private readonly IRepository _repo;
+
+    public Service(ILogger logger, IRepository repo)
+    {
+        _logger = logger;
+        _repo = repo;
+    }
+}
+```
+
+## When to Use Records vs Classes
+
+| Use Records When | Use Classes When |
+|------------------|------------------|
+| Immutable data | Mutable state |
+| DTOs, Value objects | Entities with identity |
+| Need value equality | Need reference equality |
+| API responses | Services, controllers |
+| Configuration | Stateful objects |",
+                CodeExample = @"// Complete example: Domain modeling with records
+public record Address(
+    string Street,
+    string City,
+    string State,
+    string ZipCode)
+{
+    public string FullAddress => $""{Street}, {City}, {State} {ZipCode}"";
+}
+
+public record Customer(
+    Guid Id,
+    string Name,
+    string Email,
+    Address? Address = null)
+{
+    public bool HasAddress => Address is not null;
+}
+
+public record OrderLine(
+    string ProductId,
+    string ProductName,
+    int Quantity,
+    decimal UnitPrice)
+{
+    public decimal Total => Quantity * UnitPrice;
+}
+
+public record Order(
+    Guid Id,
+    Customer Customer,
+    IReadOnlyList<OrderLine> Lines,
+    DateTime OrderDate)
+{
+    public decimal Subtotal => Lines.Sum(l => l.Total);
+    public decimal Tax => Subtotal * 0.08m;
+    public decimal Total => Subtotal + Tax;
+
+    // Factory method
+    public static Order Create(Customer customer, params OrderLine[] lines)
+        => new(Guid.NewGuid(), customer, lines, DateTime.UtcNow);
+}
+
+// Usage
+var address = new Address(""123 Main St"", ""NYC"", ""NY"", ""10001"");
+var customer = new Customer(Guid.NewGuid(), ""John Doe"", ""john@example.com"", address);
+
+var order = Order.Create(customer,
+    new OrderLine(""P001"", ""Widget"", 2, 19.99m),
+    new OrderLine(""P002"", ""Gadget"", 1, 49.99m));
+
+Console.WriteLine($""Order Total: {order.Total:C}"");
+
+// Non-destructive mutation
+var updatedCustomer = customer with { Email = ""newemail@example.com"" };
+var newOrder = order with { Customer = updatedCustomer };",
+                Tags = new() { "Records", "Immutability", "Modern C#", "C# 9" }
+            },
+
+            new() {
+                Title = "Null Safety and Nullable Reference Types",
+                Category = "Modern C#",
+                Difficulty = "Medium",
+                KeyConcepts = "nullable context, null-forgiving operator, null-conditional, null-coalescing, MaybeNull, NotNull",
+                DotNetVersion = "8.0",
+                Lesson = @"# Null Safety and Nullable Reference Types
+
+## Enabling Nullable Reference Types
+```xml
+<!-- In .csproj -->
+<PropertyGroup>
+    <Nullable>enable</Nullable>
+</PropertyGroup>
+```
+
+```csharp
+// Or per-file
+#nullable enable
+```
+
+## Nullable vs Non-Nullable
+```csharp
+#nullable enable
+
+string nonNullable = ""Hello"";  // Cannot be null
+string? nullable = null;         // Can be null
+
+// Compiler warning:
+nonNullable = null;  // Warning: Cannot assign null
+
+// OK:
+nullable = null;
+nullable = ""World"";
+```
+
+## Null Checking Operators
+
+### Null-Conditional (?.)
+```csharp
+string? name = person?.Name;  // null if person is null
+int? length = name?.Length;   // null if name is null
+
+// Chain multiple
+string? city = person?.Address?.City;
+
+// With methods
+person?.Save();
+```
+
+### Null-Coalescing (??)
+```csharp
+string name = person?.Name ?? ""Unknown"";
+int length = text?.Length ?? 0;
+
+// Chaining
+string result = first ?? second ?? third ?? ""default"";
+```
+
+### Null-Coalescing Assignment (??=)
+```csharp
+List<string>? items = null;
+items ??= new List<string>();  // Assigns only if null
+
+// Equivalent to:
+if (items == null)
+    items = new List<string>();
+```
+
+### Null-Forgiving Operator (!)
+```csharp
+// Tell compiler ""I know this isn't null""
+string name = person!.Name;  // Suppresses warning
+
+// Use carefully! Can cause NullReferenceException
+string? maybeNull = null;
+string definitelyNull = maybeNull!;  // No warning, but will fail at runtime
+```
+
+## Null Checking Patterns
+```csharp
+// Pattern matching (preferred)
+if (person is not null)
+{
+    Console.WriteLine(person.Name);
+}
+
+if (name is { Length: > 0 })
+{
+    Console.WriteLine(name);
+}
+
+// Traditional null check
+if (person != null)
+{
+    Console.WriteLine(person.Name);
+}
+
+// Throw if null
+ArgumentNullException.ThrowIfNull(person);
+
+// Or use null parameter check (C# 11)
+public void Process(string name!!)  // Throws if null
+{
+    // name is guaranteed non-null
+}
+```
+
+## Nullable Attributes
+```csharp
+using System.Diagnostics.CodeAnalysis;
+
+public class Repository
+{
+    // May return null even though return type is non-nullable
+    [return: MaybeNull]
+    public T Find<T>(int id) where T : class
+    {
+        // May return null
+    }
+
+    // Guarantees non-null after call
+    public bool TryGet(int id, [NotNullWhen(true)] out User? user)
+    {
+        user = FindUser(id);
+        return user != null;
+    }
+
+    // Parameter must not be null
+    public void Save([NotNull] User? user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        // user is not null after this point
+    }
+
+    // Output is not null if input is not null
+    [return: NotNullIfNotNull(nameof(input))]
+    public string? Transform(string? input)
+    {
+        return input?.ToUpper();
+    }
+}
+```
+
+## Required Members (C# 11)
+```csharp
+public class Person
+{
+    public required string Name { get; set; }  // Must be initialized
+    public required int Age { get; set; }
+    public string? Email { get; set; }  // Optional
+}
+
+// Must provide required members
+var person = new Person { Name = ""John"", Age = 30 };
+
+// Compiler error:
+var invalid = new Person { Age = 30 };  // Missing Name!
+```
+
+## Best Practices
+```csharp
+// 1. Enable nullable for new projects
+// 2. Use ? explicitly for nullable types
+// 3. Avoid null-forgiving (!) unless absolutely necessary
+// 4. Use ArgumentNullException.ThrowIfNull
+// 5. Prefer pattern matching for null checks
+// 6. Use [NotNull] attributes to help the compiler
+
+// Good
+public string GetDisplayName(User? user)
+{
+    if (user is null)
+        return ""Anonymous"";
+
+    return user.DisplayName ?? user.Email ?? ""Unknown"";
+}
+
+// Bad - too many null-forgiving operators
+public string GetDisplayName(User? user)
+{
+    return user!.DisplayName!;  // Dangerous!
+}
+```",
+                CodeExample = @"// Complete example: Null-safe service layer
+public interface IUserRepository
+{
+    User? FindById(int id);
+    Task<User?> FindByEmailAsync(string email);
+    IEnumerable<User> GetAll();
+}
+
+public class UserService
+{
+    private readonly IUserRepository _repository;
+    private readonly ILogger<UserService> _logger;
+
+    public UserService(IUserRepository repository, ILogger<UserService> logger)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public User GetUserOrThrow(int id)
+    {
+        var user = _repository.FindById(id);
+        return user ?? throw new NotFoundException($""User {id} not found"");
+    }
+
+    public UserDto? GetUserDto(int id)
+    {
+        var user = _repository.FindById(id);
+
+        if (user is null)
+        {
+            _logger.LogWarning(""User {Id} not found"", id);
+            return null;
+        }
+
+        return new UserDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email ?? ""No email"",
+            City = user.Address?.City ?? ""Unknown""
+        };
+    }
+
+    public async Task<string> GetUserEmailAsync(int id)
+    {
+        var user = await _repository.FindByEmailAsync(id.ToString());
+
+        return user switch
+        {
+            { Email: { Length: > 0 } email } => email,
+            { Email: null or """" } => throw new InvalidOperationException(""User has no email""),
+            null => throw new NotFoundException($""User {id} not found"")
+        };
+    }
+
+    // Using TryGet pattern
+    public bool TryGetUser(int id, [NotNullWhen(true)] out User? user)
+    {
+        user = _repository.FindById(id);
+        return user is not null;
+    }
+}
+
+// Usage
+var service = new UserService(repo, logger);
+
+if (service.TryGetUser(1, out var user))
+{
+    Console.WriteLine(user.Name);  // user is not null here
+}
+
+var dto = service.GetUserDto(1);
+Console.WriteLine(dto?.Name ?? ""Not found"");",
+                Tags = new() { "Null Safety", "Nullable", "Modern C#", "Best Practices" }
+            },
+
+            new() {
+                Title = "Source Generators",
+                Category = "Advanced",
+                Difficulty = "Hard",
+                KeyConcepts = "compile-time code generation, ISourceGenerator, incremental generators, partial classes",
+                DotNetVersion = "5.0",
+                Lesson = @"# Source Generators
+
+## What are Source Generators?
+Source generators run at compile time to generate additional C# source code that gets compiled with your project.
+
+## Benefits
+1. **Performance** - No runtime reflection
+2. **Type safety** - Generated code is checked by compiler
+3. **AOT friendly** - Works with Native AOT
+4. **Debuggable** - Can step through generated code
+
+## Common Use Cases
+- JSON serialization (System.Text.Json)
+- Dependency injection registration
+- Mapping (AutoMapper alternatives)
+- Logging
+- Validation
+- API clients
+
+## Using Built-in Source Generators
+
+### System.Text.Json Source Generation
+```csharp
+// Define a context
+[JsonSerializable(typeof(Person))]
+[JsonSerializable(typeof(List<Person>))]
+public partial class AppJsonContext : JsonSerializerContext { }
+
+public record Person(string Name, int Age);
+
+// Usage - much faster than reflection-based
+var json = JsonSerializer.Serialize(person, AppJsonContext.Default.Person);
+var person = JsonSerializer.Deserialize(json, AppJsonContext.Default.Person);
+```
+
+### Regex Source Generation
+```csharp
+public partial class Validators
+{
+    [GeneratedRegex(@""^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"")]
+    private static partial Regex EmailRegex();
+
+    public static bool IsValidEmail(string email)
+        => EmailRegex().IsMatch(email);
+}
+```
+
+### Logging Source Generation
+```csharp
+public static partial class Log
+{
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Information,
+        Message = ""User {UserId} logged in"")]
+    public static partial void UserLoggedIn(ILogger logger, int userId);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Error,
+        Message = ""Failed to process order {OrderId}"")]
+    public static partial void OrderProcessingFailed(ILogger logger, string orderId, Exception ex);
+}
+
+// Usage
+Log.UserLoggedIn(_logger, user.Id);
+Log.OrderProcessingFailed(_logger, order.Id, ex);
+```
+
+## Creating a Simple Source Generator
+```csharp
+// Generator project (.NET Standard 2.0)
+[Generator]
+public class HelloSourceGenerator : ISourceGenerator
+{
+    public void Initialize(GeneratorInitializationContext context) { }
+
+    public void Execute(GeneratorExecutionContext context)
+    {
+        var source = @""
+namespace Generated
+{
+    public static class Hello
+    {
+        public static string SayHello() => """"Hello from generated code!"""";
+    }
+}"";
+
+        context.AddSource(""Hello.g.cs"", source);
+    }
+}
+```
+
+## Incremental Generators (Preferred)
+```csharp
+[Generator]
+public class AutoNotifyGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        // Register for syntax nodes
+        var classDeclarations = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: (node, _) => node is ClassDeclarationSyntax,
+                transform: (context, _) => GetClassInfo(context))
+            .Where(info => info is not null);
+
+        // Generate code
+        context.RegisterSourceOutput(classDeclarations,
+            (context, classInfo) => GenerateCode(context, classInfo!));
+    }
+
+    private static ClassInfo? GetClassInfo(GeneratorSyntaxContext context)
+    {
+        // Extract information from syntax
+        var classDecl = (ClassDeclarationSyntax)context.Node;
+        // ... analysis
+        return new ClassInfo(classDecl.Identifier.Text);
+    }
+
+    private static void GenerateCode(SourceProductionContext context, ClassInfo info)
+    {
+        var source = $@""
+public partial class {info.Name}
+{{
+    // Generated members
+}}
+"";
+        context.AddSource($""{info.Name}.g.cs"", source);
+    }
+}
+```
+
+## Viewing Generated Code
+```xml
+<!-- In .csproj, to emit generated files -->
+<PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+</PropertyGroup>
+```",
+                CodeExample = @"// Example: Auto-implement ToString() generator
+// First, define a marker attribute
+[AttributeUsage(AttributeTargets.Class)]
+public class AutoToStringAttribute : Attribute { }
+
+// Use in your code
+[AutoToString]
+public partial class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Email { get; set; }
+}
+
+// Generator produces:
+public partial class Person
+{
+    public override string ToString()
+    {
+        return $""Person {{ Name = {Name}, Age = {Age}, Email = {Email} }}"";
+    }
+}
+
+// Example: Auto-register services generator
+[AutoRegister(ServiceLifetime.Scoped)]
+public class UserService : IUserService { }
+
+[AutoRegister(ServiceLifetime.Singleton)]
+public class CacheService : ICacheService { }
+
+// Generator produces:
+public static class ServiceRegistration
+{
+    public static IServiceCollection AddGeneratedServices(this IServiceCollection services)
+    {
+        services.AddScoped<IUserService, UserService>();
+        services.AddSingleton<ICacheService, CacheService>();
+        return services;
+    }
+}
+
+// Usage in Program.cs
+builder.Services.AddGeneratedServices();",
+                Tags = new() { "Source Generators", "Code Generation", "Compile-time", "Advanced" }
             }
         };
     }
