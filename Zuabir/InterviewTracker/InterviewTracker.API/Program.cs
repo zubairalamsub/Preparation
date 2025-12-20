@@ -16,9 +16,12 @@ var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
 // Convert Neon/Heroku style DATABASE_URL to Npgsql format if needed
 if (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://"))
 {
-    var uri = new Uri(connectionString);
+    // Remove query string parameters before parsing
+    var urlWithoutQuery = connectionString.Split('?')[0];
+    var uri = new Uri(urlWithoutQuery);
     var userInfo = uri.UserInfo.Split(':');
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    var database = uri.AbsolutePath.TrimStart('/');
+    connectionString = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={database};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
