@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Angular
+node_modules/
+.angular/
+dist/
+
+# IDE
+.idea/
+*.swp
+
+# Environment
+.env
+*.local
