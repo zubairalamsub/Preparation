@@ -9,59 +9,61 @@ import { ApiService, CSharpTopic } from '../../services/api.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1 style="font-size: 1.75rem; font-weight: 700;">C# Topics</h1>
-        <div style="display: flex; gap: 0.5rem;">
-          @if (topics.length === 0) { <button class="btn btn-success" (click)="seedTopics()">Load C# Topics with Lessons</button> }
-          <button class="btn btn-primary" (click)="openModal()">+ Add Topic</button>
+      <div class="page-header">
+        <h1>C# Topics</h1>
+        <div class="page-actions">
+          @if (topics.length === 0) { <button class="btn btn-success" (click)="seedTopics()">Load Topics</button> }
+          <button class="btn btn-primary" (click)="openModal()">+ Add</button>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 1.5rem;">
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-          <select class="form-select" style="width: auto;" [(ngModel)]="filters.category" (change)="loadTopics()">
+      <div class="card filters-card">
+        <div class="filters-container">
+          <select class="form-select" [(ngModel)]="filters.category" (change)="loadTopics()">
             <option value="">All Categories</option>
             @for (cat of allCategories; track cat) { <option [value]="cat">{{ cat }}</option> }
           </select>
-          <select class="form-select" style="width: auto;" [(ngModel)]="filters.status" (change)="loadTopics()">
+          <select class="form-select" [(ngModel)]="filters.status" (change)="loadTopics()">
             <option value="">All Status</option>
             <option value="NotStarted">Not Started</option><option value="Learning">Learning</option><option value="Understood">Understood</option><option value="Mastered">Mastered</option>
           </select>
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-left: auto;"><input type="checkbox" [(ngModel)]="showFavoritesOnly" (change)="loadTopics()"><span style="color: #fbbf24;">&#9733;</span> Favorites</label>
+          <label class="favorites-toggle"><input type="checkbox" [(ngModel)]="showFavoritesOnly" (change)="loadTopics()"><span style="color: #fbbf24;">&#9733;</span> Favorites</label>
         </div>
       </div>
 
-      <div class="grid grid-4" style="margin-bottom: 1.5rem;">
-        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; text-align: center;"><div style="font-size: 1.5rem; font-weight: 700;">{{ allTopics.length }}</div><div style="font-size: 0.75rem; color: var(--text-secondary);">Total</div></div>
-        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; text-align: center;"><div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">{{ getMasteredCount() }}</div><div style="font-size: 0.75rem; color: var(--text-secondary);">Mastered</div></div>
-        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; text-align: center;"><div style="font-size: 1.5rem; font-weight: 700; color: #fbbf24;">{{ getFavoriteCount() }}</div><div style="font-size: 0.75rem; color: var(--text-secondary);">Favorites</div></div>
-        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; text-align: center;"><div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b;">{{ getLearningCount() }}</div><div style="font-size: 0.75rem; color: var(--text-secondary);">Learning</div></div>
+      <div class="stats-grid">
+        <div class="mini-stat"><div class="mini-stat-value">{{ allTopics.length }}</div><div class="mini-stat-label">Total</div></div>
+        <div class="mini-stat"><div class="mini-stat-value" style="color: #10b981;">{{ getMasteredCount() }}</div><div class="mini-stat-label">Mastered</div></div>
+        <div class="mini-stat"><div class="mini-stat-value" style="color: #fbbf24;">{{ getFavoriteCount() }}</div><div class="mini-stat-label">Favorites</div></div>
+        <div class="mini-stat"><div class="mini-stat-value" style="color: #f59e0b;">{{ getLearningCount() }}</div><div class="mini-stat-label">Learning</div></div>
       </div>
 
       @if (topics.length === 0) {
-        <div class="card"><div class="empty-state"><div class="empty-state-icon">&#128187;</div><div>No topics. Click "Load C# Topics with Lessons" to start!</div></div></div>
+        <div class="card"><div class="empty-state"><div class="empty-state-icon">&#128187;</div><div>No topics. Click "Load Topics" to start!</div></div></div>
       } @else {
-        <div class="grid grid-3">
+        <div class="topics-grid">
           @for (topic of topics; track topic.id) {
-            <div class="card">
-              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                <div style="flex: 1;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <button style="background: none; border: none; cursor: pointer; font-size: 1.25rem; color: {{ topic.isFavorite ? '#fbbf24' : '#475569' }}; padding: 0;" (click)="toggleFavorite(topic)">{{ topic.isFavorite ? '&#9733;' : '&#9734;' }}</button>
-                    <h3 style="font-weight: 600; margin-bottom: 0;">{{ topic.title }}</h3>
+            <div class="card topic-card">
+              <div class="topic-card-header">
+                <div class="topic-info">
+                  <div class="topic-title-row">
+                    <button class="fav-btn" [style.color]="topic.isFavorite ? '#fbbf24' : '#475569'" (click)="toggleFavorite(topic)">{{ topic.isFavorite ? '&#9733;' : '&#9734;' }}</button>
+                    <h3 class="topic-title">{{ topic.title }}</h3>
                   </div>
-                  <span style="font-size: 0.875rem; color: var(--text-secondary);">{{ topic.category }}</span>
-                  @if (topic.dotNetVersion) { <span style="font-size: 0.75rem; color: #8b5cf6; margin-left: 0.5rem;">.NET {{ topic.dotNetVersion }}</span> }
+                  <div class="topic-meta">
+                    <span class="topic-category">{{ topic.category }}</span>
+                    @if (topic.dotNetVersion) { <span class="topic-version">.NET {{ topic.dotNetVersion }}</span> }
+                  </div>
                 </div>
                 <span class="badge" [class.badge-solved]="topic.status === 'Mastered'" [class.badge-average]="topic.status === 'Understood'" [class.badge-pending]="topic.status === 'Learning'">{{ topic.status }}</span>
               </div>
-              <div style="margin-bottom: 1rem;"><div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Confidence</div><div style="display: flex; gap: 0.25rem;">@for (i of [1,2,3,4,5]; track i) { <div style="width: 24px; height: 8px; border-radius: 4px;" [style.background]="i <= topic.confidenceLevel ? '#8b5cf6' : 'var(--bg-dark)'"></div> }</div></div>
-              @if (topic.keyConcepts) { <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">{{ topic.keyConcepts | slice:0:100 }}{{ topic.keyConcepts.length > 100 ? '...' : '' }}</div> }
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                @if (topic.lesson) { <button class="btn btn-success" style="flex: 1;" (click)="openLessonModal(topic)">View Lesson</button> }
-                <button class="btn btn-secondary" style="flex: 1;" (click)="editTopic(topic)">Edit</button>
-                <button class="btn btn-primary" style="flex: 1;" (click)="openReviewModal(topic)">Review</button>
-                <button class="btn btn-danger" style="padding: 0.625rem;" (click)="deleteTopic(topic.id!)">&#128465;</button>
+              <div class="confidence-section"><div class="confidence-label">Confidence</div><div class="confidence-bar">@for (i of [1,2,3,4,5]; track i) { <div class="confidence-dot" [style.background]="i <= topic.confidenceLevel ? '#8b5cf6' : 'var(--bg-dark)'"></div> }</div></div>
+              @if (topic.keyConcepts) { <div class="topic-concepts">{{ topic.keyConcepts | slice:0:100 }}{{ topic.keyConcepts.length > 100 ? '...' : '' }}</div> }
+              <div class="topic-card-actions">
+                @if (topic.lesson) { <button class="btn btn-success" (click)="openLessonModal(topic)">📖 Lesson</button> }
+                <button class="btn btn-secondary" (click)="editTopic(topic)">✏️ Edit</button>
+                <button class="btn btn-primary" (click)="openReviewModal(topic)">📝 Review</button>
+                <button class="btn btn-danger btn-icon" (click)="deleteTopic(topic.id!)">🗑️</button>
               </div>
             </div>
           }
@@ -117,6 +119,52 @@ import { ApiService, CSharpTopic } from '../../services/api.service';
     </div>
   `,
   styles: [`
+    /* Page Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; margin: 0; }
+    .page-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* Filters */
+    .filters-card { margin-bottom: 1rem; }
+    .filters-container { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .filters-container .form-select { width: auto; min-width: 140px; }
+    .favorites-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-left: auto; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    .mini-stat { background: var(--bg-card); padding: 0.875rem; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+    .mini-stat-value { font-size: 1.5rem; font-weight: 700; }
+    .mini-stat-label { font-size: 0.75rem; color: var(--text-secondary); }
+
+    /* Topics Grid */
+    .topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+    /* Topic Card */
+    .topic-card { display: flex; flex-direction: column; }
+    .topic-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; gap: 0.5rem; }
+    .topic-info { flex: 1; min-width: 0; }
+    .topic-title-row { display: flex; align-items: center; gap: 0.5rem; }
+    .topic-title { font-weight: 600; font-size: 1rem; margin: 0; word-break: break-word; }
+    .topic-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
+    .topic-category { font-size: 0.875rem; color: var(--text-secondary); }
+    .topic-version { font-size: 0.75rem; color: #8b5cf6; }
+    .fav-btn { background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0; line-height: 1; }
+
+    /* Confidence */
+    .confidence-section { margin-bottom: 0.75rem; }
+    .confidence-label { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+    .confidence-bar { display: flex; gap: 0.25rem; }
+    .confidence-dot { width: 24px; height: 8px; border-radius: 4px; }
+
+    /* Concepts */
+    .topic-concepts { font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4; }
+
+    /* Card Actions */
+    .topic-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; }
+    .topic-card-actions .btn { flex: 1; min-width: 70px; }
+    .topic-card-actions .btn-icon { flex: 0 0 auto; padding: 0.625rem; }
+
+    /* Lesson Modal */
     .lesson-modal { width: 90%; }
     .lesson-content { font-size: 0.95rem; line-height: 1.8; }
     .lesson-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 1rem; color: #a78bfa; }
@@ -125,6 +173,45 @@ import { ApiService, CSharpTopic } from '../../services/api.service';
     .lesson-content pre { background: #1e293b; padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
     .lesson-content code { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.875rem; }
     .lesson-content strong { color: #fbbf24; }
+
+    /* Mobile Responsive */
+    @media (max-width: 1024px) {
+      .topics-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .page-header h1 { font-size: 1.4rem; }
+      .page-actions { width: 100%; }
+      .page-actions .btn { flex: 1; }
+
+      .filters-container { flex-direction: column; align-items: stretch; }
+      .filters-container .form-select { width: 100%; }
+      .favorites-toggle { margin-left: 0; justify-content: flex-start; }
+
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .mini-stat-value { font-size: 1.25rem; }
+
+      .topics-grid { grid-template-columns: 1fr; }
+
+      .topic-card-header { flex-direction: column; }
+      .topic-card-actions .btn { flex: 1 1 45%; font-size: 0.8rem; }
+
+      .lesson-modal { max-width: none !important; width: 95% !important; }
+      .lesson-content { font-size: 0.9rem !important; line-height: 1.6 !important; }
+      .lesson-content h1 { font-size: 1.3rem !important; }
+      .lesson-content h2 { font-size: 1.15rem !important; }
+      .lesson-content h3 { font-size: 1rem !important; }
+      .lesson-content pre { font-size: 0.75rem; padding: 0.75rem; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .mini-stat { padding: 0.625rem; }
+      .mini-stat-value { font-size: 1.1rem; }
+      .topic-card-actions .btn { padding: 0.5rem; }
+    }
   `]
 })
 export class CsharpComponent implements OnInit {

@@ -308,3 +308,339 @@ body {
   position: relative;
   height: 300px;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile Navigation */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.nav-toggle-icon {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text-primary);
+  position: relative;
+  transition: background 0.3s;
+}
+
+.nav-toggle-icon::before,
+.nav-toggle-icon::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 2px;
+  background: var(--text-primary);
+  transition: transform 0.3s;
+}
+
+.nav-toggle-icon::before {
+  top: -7px;
+}
+
+.nav-toggle-icon::after {
+  top: 7px;
+}
+
+/* Mobile Menu Open State */
+.nav-toggle.active .nav-toggle-icon {
+  background: transparent;
+}
+
+.nav-toggle.active .nav-toggle-icon::before {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.nav-toggle.active .nav-toggle-icon::after {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* Tablet Breakpoint */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .nav-brand {
+    font-size: 1.1rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+}
+
+/* Mobile Breakpoint */
+@media (max-width: 768px) {
+  .nav-toggle {
+    display: block;
+  }
+
+  .nav-content {
+    flex-wrap: wrap;
+  }
+
+  .nav-links {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-links.show {
+    display: flex;
+  }
+
+  .nav-link {
+    padding: 0.75rem 1rem;
+    width: 100%;
+    text-align: left;
+    border-radius: 8px;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    background: var(--bg-hover);
+  }
+
+  /* Container adjustments */
+  .container {
+    padding: 0 0.75rem;
+  }
+
+  main.container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  /* Page titles */
+  h1 {
+    font-size: 1.4rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Stats */
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+
+  /* Cards */
+  .card {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* Tables - horizontal scroll */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table th, .table td {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* Modals */
+  .modal {
+    width: 95%;
+    max-width: none;
+    padding: 1.25rem;
+    margin: 0.5rem;
+    max-height: 85vh;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  /* Forms */
+  .form-input, .form-select, .form-textarea {
+    padding: 0.625rem 0.75rem;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Badges */
+  .badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 6px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state-icon {
+    font-size: 2rem;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .card {
+    padding: 0.875rem;
+  }
+
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* Lesson modal adjustments */
+  .lesson-modal {
+    padding: 1rem !important;
+  }
+}
+
+/* Topic card mobile adjustments */
+@media (max-width: 768px) {
+  .topic-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .topic-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .topic-card-actions .btn {
+    flex: 1 1 45%;
+    min-width: 80px;
+  }
+}
+
+/* Filter section mobile */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filters-container .form-select {
+    width: 100% !important;
+  }
+
+  .filters-container label {
+    margin-left: 0 !important;
+  }
+}
+
+/* Lesson content mobile */
+@media (max-width: 768px) {
+  .lesson-content {
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+  }
+
+  .lesson-content h1 {
+    font-size: 1.4rem !important;
+  }
+
+  .lesson-content h2 {
+    font-size: 1.2rem !important;
+  }
+
+  .lesson-content h3 {
+    font-size: 1.05rem !important;
+  }
+
+  .lesson-content pre {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    margin: 0.75rem -0.5rem;
+    border-radius: 0;
+  }
+
+  .lesson-content code {
+    font-size: 0.8rem;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (max-width: 768px) {
+  .btn, .nav-link, .form-select, .form-input {
+    min-height: 44px; /* iOS recommended touch target */
+  }
+
+  /* Better tap targets for checkboxes and buttons */
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+}
