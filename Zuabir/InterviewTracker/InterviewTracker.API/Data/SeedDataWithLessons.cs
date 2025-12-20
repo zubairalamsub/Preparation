@@ -4831,6 +4831,2814 @@ public class AsyncRepository<T> : IAsyncRepository<T> where T : class
     }
 }",
                 Tags = new() { "Data Access", "Abstraction", "Architecture" }
+            },
+
+            new() {
+                Title = "Abstract Factory",
+                Category = "Creational",
+                Difficulty = "Hard",
+                KeyConcepts = "Family of related objects, platform independence, product variants, factory of factories",
+                UseCases = "UI themes, cross-platform development, database providers",
+                Lesson = @"# Abstract Factory Pattern
+
+## Intent
+Provide an interface for creating families of related or dependent objects without specifying their concrete classes.
+
+## Structure
+```
+┌─────────────────────┐      ┌─────────────────────┐
+│  AbstractFactory    │      │   AbstractProductA  │
+├─────────────────────┤      └─────────────────────┘
+│ CreateProductA()    │               ▲
+│ CreateProductB()    │      ┌────────┴────────┐
+└─────────────────────┘      │                 │
+         ▲              ProductA1         ProductA2
+    ┌────┴────┐
+    │         │
+Factory1   Factory2
+```
+
+## Implementation
+```csharp
+// Abstract Products
+public interface IButton
+{
+    void Render();
+    void OnClick(Action handler);
+}
+
+public interface ITextBox
+{
+    void Render();
+    string GetText();
+    void SetText(string text);
+}
+
+public interface ICheckBox
+{
+    void Render();
+    bool IsChecked { get; set; }
+}
+
+// Abstract Factory
+public interface IUIFactory
+{
+    IButton CreateButton();
+    ITextBox CreateTextBox();
+    ICheckBox CreateCheckBox();
+}
+
+// Windows Concrete Products
+public class WindowsButton : IButton
+{
+    public void Render() => Console.WriteLine(""[Windows Button]"");
+    public void OnClick(Action handler) => handler();
+}
+
+public class WindowsTextBox : ITextBox
+{
+    private string _text = """";
+    public void Render() => Console.WriteLine($""[Windows TextBox: {_text}]"");
+    public string GetText() => _text;
+    public void SetText(string text) => _text = text;
+}
+
+public class WindowsCheckBox : ICheckBox
+{
+    public bool IsChecked { get; set; }
+    public void Render() => Console.WriteLine($""[Windows CheckBox: {(IsChecked ? ""☑"" : ""☐"")}]"");
+}
+
+// Mac Concrete Products
+public class MacButton : IButton
+{
+    public void Render() => Console.WriteLine(""(Mac Button)"");
+    public void OnClick(Action handler) => handler();
+}
+
+public class MacTextBox : ITextBox
+{
+    private string _text = """";
+    public void Render() => Console.WriteLine($""(Mac TextBox: {_text})"");
+    public string GetText() => _text;
+    public void SetText(string text) => _text = text;
+}
+
+public class MacCheckBox : ICheckBox
+{
+    public bool IsChecked { get; set; }
+    public void Render() => Console.WriteLine($""(Mac CheckBox: {(IsChecked ? ""✓"" : ""○"")})"");
+}
+
+// Concrete Factories
+public class WindowsUIFactory : IUIFactory
+{
+    public IButton CreateButton() => new WindowsButton();
+    public ITextBox CreateTextBox() => new WindowsTextBox();
+    public ICheckBox CreateCheckBox() => new WindowsCheckBox();
+}
+
+public class MacUIFactory : IUIFactory
+{
+    public IButton CreateButton() => new MacButton();
+    public ITextBox CreateTextBox() => new MacTextBox();
+    public ICheckBox CreateCheckBox() => new MacCheckBox();
+}
+```
+
+## Usage
+```csharp
+public class Application
+{
+    private readonly IButton _button;
+    private readonly ITextBox _textBox;
+    private readonly ICheckBox _checkBox;
+
+    public Application(IUIFactory factory)
+    {
+        // Client works with factory interface only
+        _button = factory.CreateButton();
+        _textBox = factory.CreateTextBox();
+        _checkBox = factory.CreateCheckBox();
+    }
+
+    public void Render()
+    {
+        _button.Render();
+        _textBox.Render();
+        _checkBox.Render();
+    }
+}
+
+// Factory selection based on environment
+IUIFactory factory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    ? new WindowsUIFactory()
+    : new MacUIFactory();
+
+var app = new Application(factory);
+app.Render();
+```
+
+## Real-World Example: Database Providers
+```csharp
+public interface IDbConnection { void Open(); void Close(); }
+public interface IDbCommand { void Execute(string sql); }
+public interface IDbTransaction { void Commit(); void Rollback(); }
+
+public interface IDatabaseFactory
+{
+    IDbConnection CreateConnection(string connectionString);
+    IDbCommand CreateCommand();
+    IDbTransaction CreateTransaction();
+}
+
+public class SqlServerFactory : IDatabaseFactory { /* ... */ }
+public class PostgresFactory : IDatabaseFactory { /* ... */ }
+public class MySqlFactory : IDatabaseFactory { /* ... */ }
+```
+
+## Abstract Factory vs Factory Method
+| Abstract Factory | Factory Method |
+|------------------|----------------|
+| Creates families of products | Creates single product |
+| Multiple factory methods | Single factory method |
+| Related products only | Any product |
+| More complex | Simpler |",
+                CodeExample = @"// Theme-based UI Factory
+public interface ITheme
+{
+    IUIFactory CreateUIFactory();
+    string PrimaryColor { get; }
+    string SecondaryColor { get; }
+}
+
+public class LightTheme : ITheme
+{
+    public IUIFactory CreateUIFactory() => new LightUIFactory();
+    public string PrimaryColor => ""#FFFFFF"";
+    public string SecondaryColor => ""#000000"";
+}
+
+public class DarkTheme : ITheme
+{
+    public IUIFactory CreateUIFactory() => new DarkUIFactory();
+    public string PrimaryColor => ""#1E1E1E"";
+    public string SecondaryColor => ""#FFFFFF"";
+}
+
+// Usage with DI
+public class ThemeService
+{
+    private readonly Dictionary<string, ITheme> _themes = new()
+    {
+        [""light""] = new LightTheme(),
+        [""dark""] = new DarkTheme()
+    };
+
+    public ITheme GetTheme(string name)
+        => _themes.TryGetValue(name, out var theme) ? theme : _themes[""light""];
+}
+
+// In Startup
+services.AddSingleton<ThemeService>();
+services.AddScoped<IUIFactory>(sp =>
+{
+    var themeService = sp.GetRequiredService<ThemeService>();
+    var userPreference = GetUserPreference(); // From user settings
+    return themeService.GetTheme(userPreference).CreateUIFactory();
+});",
+                Tags = new() { "Creational", "Family of Objects", "GoF" }
+            },
+
+            new() {
+                Title = "Builder",
+                Category = "Creational",
+                Difficulty = "Medium",
+                KeyConcepts = "Step-by-step construction, fluent interface, director, immutable objects",
+                UseCases = "Complex object creation, configuration objects, test data builders",
+                Lesson = @"# Builder Pattern
+
+## Intent
+Separate the construction of a complex object from its representation, allowing the same construction process to create different representations.
+
+## When to Use
+- Object has many optional parameters
+- Object requires multiple steps to create
+- Object should be immutable after creation
+- Same construction process for different representations
+
+## Basic Implementation
+```csharp
+public class Pizza
+{
+    public string Dough { get; }
+    public string Sauce { get; }
+    public List<string> Toppings { get; }
+    public string Size { get; }
+    public bool ExtraCheese { get; }
+
+    // Private constructor - only Builder can create
+    private Pizza(PizzaBuilder builder)
+    {
+        Dough = builder.Dough;
+        Sauce = builder.Sauce;
+        Toppings = builder.Toppings.ToList();
+        Size = builder.Size;
+        ExtraCheese = builder.ExtraCheese;
+    }
+
+    public class PizzaBuilder
+    {
+        public string Dough { get; private set; } = ""Regular"";
+        public string Sauce { get; private set; } = ""Tomato"";
+        public List<string> Toppings { get; } = new();
+        public string Size { get; private set; } = ""Medium"";
+        public bool ExtraCheese { get; private set; }
+
+        public PizzaBuilder WithDough(string dough)
+        {
+            Dough = dough;
+            return this;
+        }
+
+        public PizzaBuilder WithSauce(string sauce)
+        {
+            Sauce = sauce;
+            return this;
+        }
+
+        public PizzaBuilder AddTopping(string topping)
+        {
+            Toppings.Add(topping);
+            return this;
+        }
+
+        public PizzaBuilder WithSize(string size)
+        {
+            Size = size;
+            return this;
+        }
+
+        public PizzaBuilder WithExtraCheese()
+        {
+            ExtraCheese = true;
+            return this;
+        }
+
+        public Pizza Build() => new Pizza(this);
+    }
+}
+
+// Usage - Fluent API
+var pizza = new Pizza.PizzaBuilder()
+    .WithDough(""Thin Crust"")
+    .WithSauce(""BBQ"")
+    .AddTopping(""Chicken"")
+    .AddTopping(""Onions"")
+    .AddTopping(""Peppers"")
+    .WithSize(""Large"")
+    .WithExtraCheese()
+    .Build();
+```
+
+## With Director
+```csharp
+public class PizzaDirector
+{
+    public Pizza BuildMargherita(Pizza.PizzaBuilder builder)
+    {
+        return builder
+            .WithDough(""Regular"")
+            .WithSauce(""Tomato"")
+            .AddTopping(""Mozzarella"")
+            .AddTopping(""Basil"")
+            .Build();
+    }
+
+    public Pizza BuildMeatLovers(Pizza.PizzaBuilder builder)
+    {
+        return builder
+            .WithDough(""Thick"")
+            .WithSauce(""Tomato"")
+            .AddTopping(""Pepperoni"")
+            .AddTopping(""Sausage"")
+            .AddTopping(""Bacon"")
+            .AddTopping(""Ham"")
+            .WithExtraCheese()
+            .Build();
+    }
+}
+
+// Usage
+var director = new PizzaDirector();
+var margherita = director.BuildMargherita(new Pizza.PizzaBuilder());
+```
+
+## Real-World: HttpRequestMessage Builder
+```csharp
+public class HttpRequestBuilder
+{
+    private HttpMethod _method = HttpMethod.Get;
+    private string _url;
+    private readonly Dictionary<string, string> _headers = new();
+    private HttpContent _content;
+    private TimeSpan? _timeout;
+
+    public HttpRequestBuilder WithMethod(HttpMethod method)
+    {
+        _method = method;
+        return this;
+    }
+
+    public HttpRequestBuilder WithUrl(string url)
+    {
+        _url = url;
+        return this;
+    }
+
+    public HttpRequestBuilder WithHeader(string name, string value)
+    {
+        _headers[name] = value;
+        return this;
+    }
+
+    public HttpRequestBuilder WithBearerToken(string token)
+    {
+        _headers[""Authorization""] = $""Bearer {token}"";
+        return this;
+    }
+
+    public HttpRequestBuilder WithJsonBody<T>(T body)
+    {
+        _content = new StringContent(
+            JsonSerializer.Serialize(body),
+            Encoding.UTF8,
+            ""application/json"");
+        return this;
+    }
+
+    public HttpRequestBuilder WithTimeout(TimeSpan timeout)
+    {
+        _timeout = timeout;
+        return this;
+    }
+
+    public HttpRequestMessage Build()
+    {
+        var request = new HttpRequestMessage(_method, _url);
+
+        foreach (var header in _headers)
+            request.Headers.Add(header.Key, header.Value);
+
+        if (_content != null)
+            request.Content = _content;
+
+        return request;
+    }
+}
+
+// Usage
+var request = new HttpRequestBuilder()
+    .WithMethod(HttpMethod.Post)
+    .WithUrl(""https://api.example.com/users"")
+    .WithBearerToken(""my-token"")
+    .WithJsonBody(new { Name = ""John"", Email = ""john@example.com"" })
+    .Build();
+```
+
+## Validation in Builder
+```csharp
+public class EmailBuilder
+{
+    private string _to;
+    private string _from;
+    private string _subject;
+    private string _body;
+    private readonly List<string> _errors = new();
+
+    public EmailBuilder To(string email)
+    {
+        if (!IsValidEmail(email))
+            _errors.Add($""Invalid 'to' email: {email}"");
+        _to = email;
+        return this;
+    }
+
+    public Email Build()
+    {
+        if (_errors.Any())
+            throw new InvalidOperationException(
+                $""Cannot build email: {string.Join("", "", _errors)}"");
+
+        return new Email(_to, _from, _subject, _body);
+    }
+}
+```",
+                CodeExample = @"// Test Data Builder Pattern
+public class CustomerBuilder
+{
+    private int _id = 1;
+    private string _name = ""John Doe"";
+    private string _email = ""john@example.com"";
+    private string _phone = ""555-1234"";
+    private Address _address = new Address(""123 Main St"", ""NYC"", ""NY"", ""10001"");
+    private CustomerType _type = CustomerType.Regular;
+    private bool _isActive = true;
+    private decimal _creditLimit = 1000m;
+
+    public CustomerBuilder WithId(int id) { _id = id; return this; }
+    public CustomerBuilder WithName(string name) { _name = name; return this; }
+    public CustomerBuilder WithEmail(string email) { _email = email; return this; }
+    public CustomerBuilder WithPhone(string phone) { _phone = phone; return this; }
+    public CustomerBuilder WithAddress(Address address) { _address = address; return this; }
+    public CustomerBuilder AsPremium() { _type = CustomerType.Premium; _creditLimit = 10000m; return this; }
+    public CustomerBuilder AsInactive() { _isActive = false; return this; }
+    public CustomerBuilder WithCreditLimit(decimal limit) { _creditLimit = limit; return this; }
+
+    public Customer Build() => new Customer
+    {
+        Id = _id, Name = _name, Email = _email, Phone = _phone,
+        Address = _address, Type = _type, IsActive = _isActive, CreditLimit = _creditLimit
+    };
+
+    // Factory methods for common scenarios
+    public static CustomerBuilder Default() => new CustomerBuilder();
+    public static CustomerBuilder Premium() => new CustomerBuilder().AsPremium();
+    public static CustomerBuilder Inactive() => new CustomerBuilder().AsInactive();
+}
+
+// Usage in tests
+[Fact]
+public void Premium_Customer_Gets_Discount()
+{
+    var customer = CustomerBuilder.Premium()
+        .WithName(""Jane Smith"")
+        .Build();
+
+    var discount = _discountService.CalculateDiscount(customer);
+
+    Assert.Equal(0.20m, discount);
+}",
+                Tags = new() { "Creational", "Fluent Interface", "GoF" }
+            },
+
+            new() {
+                Title = "Strategy",
+                Category = "Behavioral",
+                Difficulty = "Easy",
+                KeyConcepts = "Interchangeable algorithms, runtime behavior change, composition over inheritance",
+                UseCases = "Payment processing, sorting algorithms, validation rules, pricing strategies",
+                Lesson = @"# Strategy Pattern
+
+## Intent
+Define a family of algorithms, encapsulate each one, and make them interchangeable. Strategy lets the algorithm vary independently from clients that use it.
+
+## Structure
+```
+┌─────────────┐     ┌─────────────────┐
+│   Context   │────▶│   IStrategy     │
+├─────────────┤     ├─────────────────┤
+│ SetStrategy │     │ Execute()       │
+│ Execute()   │     └─────────────────┘
+└─────────────┘              ▲
+                    ┌────────┼────────┐
+                    │        │        │
+              StrategyA  StrategyB  StrategyC
+```
+
+## Implementation
+```csharp
+// Strategy interface
+public interface IPaymentStrategy
+{
+    void Pay(decimal amount);
+    bool ValidatePaymentDetails();
+}
+
+// Concrete strategies
+public class CreditCardPayment : IPaymentStrategy
+{
+    private readonly string _cardNumber;
+    private readonly string _cvv;
+    private readonly string _expiry;
+
+    public CreditCardPayment(string cardNumber, string cvv, string expiry)
+    {
+        _cardNumber = cardNumber;
+        _cvv = cvv;
+        _expiry = expiry;
+    }
+
+    public bool ValidatePaymentDetails()
+        => _cardNumber.Length == 16 && _cvv.Length == 3;
+
+    public void Pay(decimal amount)
+    {
+        Console.WriteLine($""Paid ${amount} using Credit Card ending in {_cardNumber[^4..]}"");
+    }
+}
+
+public class PayPalPayment : IPaymentStrategy
+{
+    private readonly string _email;
+
+    public PayPalPayment(string email) => _email = email;
+
+    public bool ValidatePaymentDetails() => _email.Contains(""@"");
+
+    public void Pay(decimal amount)
+    {
+        Console.WriteLine($""Paid ${amount} using PayPal account {_email}"");
+    }
+}
+
+public class CryptoPayment : IPaymentStrategy
+{
+    private readonly string _walletAddress;
+
+    public CryptoPayment(string walletAddress) => _walletAddress = walletAddress;
+
+    public bool ValidatePaymentDetails() => _walletAddress.StartsWith(""0x"");
+
+    public void Pay(decimal amount)
+    {
+        Console.WriteLine($""Paid ${amount} in crypto to {_walletAddress}"");
+    }
+}
+
+// Context
+public class PaymentProcessor
+{
+    private IPaymentStrategy _strategy;
+
+    public void SetStrategy(IPaymentStrategy strategy)
+    {
+        _strategy = strategy;
+    }
+
+    public bool ProcessPayment(decimal amount)
+    {
+        if (_strategy == null)
+            throw new InvalidOperationException(""Payment strategy not set"");
+
+        if (!_strategy.ValidatePaymentDetails())
+            return false;
+
+        _strategy.Pay(amount);
+        return true;
+    }
+}
+
+// Usage
+var processor = new PaymentProcessor();
+
+// Pay with credit card
+processor.SetStrategy(new CreditCardPayment(""1234567890123456"", ""123"", ""12/25""));
+processor.ProcessPayment(99.99m);
+
+// Switch to PayPal
+processor.SetStrategy(new PayPalPayment(""user@example.com""));
+processor.ProcessPayment(49.99m);
+```
+
+## With Dependency Injection
+```csharp
+// Register all strategies
+services.AddTransient<CreditCardPayment>();
+services.AddTransient<PayPalPayment>();
+services.AddTransient<CryptoPayment>();
+
+// Strategy resolver
+services.AddTransient<Func<string, IPaymentStrategy>>(sp => key =>
+{
+    return key switch
+    {
+        ""credit"" => sp.GetRequiredService<CreditCardPayment>(),
+        ""paypal"" => sp.GetRequiredService<PayPalPayment>(),
+        ""crypto"" => sp.GetRequiredService<CryptoPayment>(),
+        _ => throw new ArgumentException($""Unknown payment type: {key}"")
+    };
+});
+
+// Usage in controller
+public class PaymentController : ControllerBase
+{
+    private readonly Func<string, IPaymentStrategy> _strategyResolver;
+
+    public PaymentController(Func<string, IPaymentStrategy> resolver)
+    {
+        _strategyResolver = resolver;
+    }
+
+    [HttpPost]
+    public IActionResult Pay(string paymentType, decimal amount)
+    {
+        var strategy = _strategyResolver(paymentType);
+        strategy.Pay(amount);
+        return Ok();
+    }
+}
+```
+
+## Real-World: Sorting Strategies
+```csharp
+public interface ISortStrategy<T>
+{
+    IEnumerable<T> Sort(IEnumerable<T> items);
+}
+
+public class QuickSortStrategy<T> : ISortStrategy<T> where T : IComparable<T>
+{
+    public IEnumerable<T> Sort(IEnumerable<T> items)
+    {
+        var list = items.ToList();
+        QuickSort(list, 0, list.Count - 1);
+        return list;
+    }
+    // QuickSort implementation...
+}
+
+public class MergeSortStrategy<T> : ISortStrategy<T> where T : IComparable<T>
+{
+    public IEnumerable<T> Sort(IEnumerable<T> items)
+    {
+        // MergeSort implementation...
+    }
+}
+
+// Choose strategy based on data size
+public class AdaptiveSorter<T> where T : IComparable<T>
+{
+    public IEnumerable<T> Sort(IEnumerable<T> items)
+    {
+        ISortStrategy<T> strategy = items.Count() > 1000
+            ? new QuickSortStrategy<T>()
+            : new MergeSortStrategy<T>();
+
+        return strategy.Sort(items);
+    }
+}
+```",
+                CodeExample = @"// Discount Strategy Example
+public interface IDiscountStrategy
+{
+    decimal CalculateDiscount(Order order);
+    string Description { get; }
+}
+
+public class NoDiscount : IDiscountStrategy
+{
+    public string Description => ""No discount"";
+    public decimal CalculateDiscount(Order order) => 0;
+}
+
+public class PercentageDiscount : IDiscountStrategy
+{
+    private readonly decimal _percentage;
+    public PercentageDiscount(decimal percentage) => _percentage = percentage;
+    public string Description => $""{_percentage}% off"";
+    public decimal CalculateDiscount(Order order) => order.Total * (_percentage / 100);
+}
+
+public class FlatDiscount : IDiscountStrategy
+{
+    private readonly decimal _amount;
+    public FlatDiscount(decimal amount) => _amount = amount;
+    public string Description => $""${_amount} off"";
+    public decimal CalculateDiscount(Order order) => Math.Min(_amount, order.Total);
+}
+
+public class BuyXGetYFree : IDiscountStrategy
+{
+    private readonly int _buyCount;
+    private readonly int _freeCount;
+    public BuyXGetYFree(int buy, int free) { _buyCount = buy; _freeCount = free; }
+    public string Description => $""Buy {_buyCount} Get {_freeCount} Free"";
+    public decimal CalculateDiscount(Order order)
+    {
+        var cheapestItem = order.Items.Min(i => i.Price);
+        var sets = order.Items.Count / (_buyCount + _freeCount);
+        return cheapestItem * sets * _freeCount;
+    }
+}
+
+// Strategy selection based on conditions
+public class DiscountEngine
+{
+    public IDiscountStrategy SelectBestDiscount(Order order, Customer customer)
+    {
+        var strategies = new List<IDiscountStrategy>
+        {
+            new NoDiscount()
+        };
+
+        if (customer.IsPremium)
+            strategies.Add(new PercentageDiscount(15));
+
+        if (order.Total > 100)
+            strategies.Add(new PercentageDiscount(10));
+
+        if (order.Items.Count >= 3)
+            strategies.Add(new BuyXGetYFree(2, 1));
+
+        // Return strategy with highest discount
+        return strategies.MaxBy(s => s.CalculateDiscount(order));
+    }
+}",
+                Tags = new() { "Behavioral", "Algorithm", "GoF" }
+            },
+
+            new() {
+                Title = "Observer",
+                Category = "Behavioral",
+                Difficulty = "Medium",
+                KeyConcepts = "Publish-subscribe, event handling, loose coupling, one-to-many dependency",
+                UseCases = "Event systems, UI updates, notifications, real-time data",
+                Lesson = @"# Observer Pattern
+
+## Intent
+Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically.
+
+## Structure
+```
+┌─────────────┐      ┌─────────────────┐
+│   Subject   │─────▶│    IObserver    │
+├─────────────┤      ├─────────────────┤
+│ Attach()    │      │ Update()        │
+│ Detach()    │      └─────────────────┘
+│ Notify()    │               ▲
+└─────────────┘      ┌────────┼────────┐
+                     │        │        │
+               ObserverA  ObserverB  ObserverC
+```
+
+## Implementation
+```csharp
+// Observer interface
+public interface IObserver<T>
+{
+    void Update(T data);
+}
+
+// Subject interface
+public interface ISubject<T>
+{
+    void Attach(IObserver<T> observer);
+    void Detach(IObserver<T> observer);
+    void Notify();
+}
+
+// Concrete Subject
+public class StockTicker : ISubject<StockPrice>
+{
+    private readonly List<IObserver<StockPrice>> _observers = new();
+    private StockPrice _currentPrice;
+
+    public StockPrice CurrentPrice
+    {
+        get => _currentPrice;
+        set
+        {
+            _currentPrice = value;
+            Notify();
+        }
+    }
+
+    public void Attach(IObserver<StockPrice> observer)
+    {
+        _observers.Add(observer);
+    }
+
+    public void Detach(IObserver<StockPrice> observer)
+    {
+        _observers.Remove(observer);
+    }
+
+    public void Notify()
+    {
+        foreach (var observer in _observers)
+        {
+            observer.Update(_currentPrice);
+        }
+    }
+}
+
+public record StockPrice(string Symbol, decimal Price, DateTime Timestamp);
+
+// Concrete Observers
+public class StockDisplay : IObserver<StockPrice>
+{
+    private readonly string _name;
+
+    public StockDisplay(string name) => _name = name;
+
+    public void Update(StockPrice data)
+    {
+        Console.WriteLine($""[{_name}] {data.Symbol}: ${data.Price} at {data.Timestamp:HH:mm:ss}"");
+    }
+}
+
+public class PriceAlertObserver : IObserver<StockPrice>
+{
+    private readonly string _symbol;
+    private readonly decimal _targetPrice;
+    private readonly Action<StockPrice> _alertAction;
+
+    public PriceAlertObserver(string symbol, decimal targetPrice, Action<StockPrice> alertAction)
+    {
+        _symbol = symbol;
+        _targetPrice = targetPrice;
+        _alertAction = alertAction;
+    }
+
+    public void Update(StockPrice data)
+    {
+        if (data.Symbol == _symbol && data.Price >= _targetPrice)
+        {
+            _alertAction(data);
+        }
+    }
+}
+
+// Usage
+var ticker = new StockTicker();
+
+var display1 = new StockDisplay(""Main Display"");
+var display2 = new StockDisplay(""Mobile App"");
+var alert = new PriceAlertObserver(""AAPL"", 150m, p =>
+    Console.WriteLine($""ALERT: {p.Symbol} reached ${p.Price}!""));
+
+ticker.Attach(display1);
+ticker.Attach(display2);
+ticker.Attach(alert);
+
+ticker.CurrentPrice = new StockPrice(""AAPL"", 145m, DateTime.Now);
+ticker.CurrentPrice = new StockPrice(""AAPL"", 152m, DateTime.Now);
+
+ticker.Detach(display2);
+```
+
+## Using .NET Events
+```csharp
+public class StockTickerWithEvents
+{
+    public event EventHandler<StockPrice> PriceChanged;
+
+    private StockPrice _currentPrice;
+    public StockPrice CurrentPrice
+    {
+        get => _currentPrice;
+        set
+        {
+            _currentPrice = value;
+            OnPriceChanged(value);
+        }
+    }
+
+    protected virtual void OnPriceChanged(StockPrice price)
+    {
+        PriceChanged?.Invoke(this, price);
+    }
+}
+
+// Usage
+var ticker = new StockTickerWithEvents();
+
+ticker.PriceChanged += (sender, price) =>
+    Console.WriteLine($""{price.Symbol}: ${price.Price}"");
+
+ticker.PriceChanged += (sender, price) =>
+{
+    if (price.Price > 150)
+        SendNotification(price);
+};
+```
+
+## Using IObservable<T> (Reactive)
+```csharp
+public class ReactiveStockTicker : IObservable<StockPrice>
+{
+    private readonly List<IObserver<StockPrice>> _observers = new();
+
+    public IDisposable Subscribe(IObserver<StockPrice> observer)
+    {
+        _observers.Add(observer);
+        return new Unsubscriber(_observers, observer);
+    }
+
+    public void PublishPrice(StockPrice price)
+    {
+        foreach (var observer in _observers)
+        {
+            observer.OnNext(price);
+        }
+    }
+
+    public void Complete()
+    {
+        foreach (var observer in _observers)
+        {
+            observer.OnCompleted();
+        }
+    }
+
+    private class Unsubscriber : IDisposable
+    {
+        private readonly List<IObserver<StockPrice>> _observers;
+        private readonly IObserver<StockPrice> _observer;
+
+        public Unsubscriber(List<IObserver<StockPrice>> observers, IObserver<StockPrice> observer)
+        {
+            _observers = observers;
+            _observer = observer;
+        }
+
+        public void Dispose() => _observers.Remove(_observer);
+    }
+}
+```",
+                CodeExample = @"// Real-world: Order Status Notification System
+public interface IOrderObserver
+{
+    void OnOrderStatusChanged(Order order, OrderStatus oldStatus, OrderStatus newStatus);
+}
+
+public class Order
+{
+    private readonly List<IOrderObserver> _observers = new();
+    private OrderStatus _status = OrderStatus.Created;
+
+    public string OrderId { get; }
+    public string CustomerEmail { get; }
+
+    public Order(string orderId, string customerEmail)
+    {
+        OrderId = orderId;
+        CustomerEmail = customerEmail;
+    }
+
+    public OrderStatus Status
+    {
+        get => _status;
+        set
+        {
+            var oldStatus = _status;
+            _status = value;
+            NotifyObservers(oldStatus, value);
+        }
+    }
+
+    public void Subscribe(IOrderObserver observer) => _observers.Add(observer);
+    public void Unsubscribe(IOrderObserver observer) => _observers.Remove(observer);
+
+    private void NotifyObservers(OrderStatus oldStatus, OrderStatus newStatus)
+    {
+        foreach (var observer in _observers)
+            observer.OnOrderStatusChanged(this, oldStatus, newStatus);
+    }
+}
+
+public class EmailNotifier : IOrderObserver
+{
+    private readonly IEmailService _emailService;
+
+    public EmailNotifier(IEmailService emailService) => _emailService = emailService;
+
+    public void OnOrderStatusChanged(Order order, OrderStatus oldStatus, OrderStatus newStatus)
+    {
+        var message = newStatus switch
+        {
+            OrderStatus.Confirmed => ""Your order has been confirmed!"",
+            OrderStatus.Shipped => ""Your order has been shipped!"",
+            OrderStatus.Delivered => ""Your order has been delivered!"",
+            _ => null
+        };
+
+        if (message != null)
+            _emailService.Send(order.CustomerEmail, $""Order {order.OrderId}"", message);
+    }
+}
+
+public class InventoryUpdater : IOrderObserver
+{
+    public void OnOrderStatusChanged(Order order, OrderStatus oldStatus, OrderStatus newStatus)
+    {
+        if (newStatus == OrderStatus.Confirmed)
+            ReserveInventory(order);
+        else if (newStatus == OrderStatus.Cancelled)
+            ReleaseInventory(order);
+    }
+}
+
+public class AnalyticsTracker : IOrderObserver
+{
+    public void OnOrderStatusChanged(Order order, OrderStatus oldStatus, OrderStatus newStatus)
+    {
+        TrackEvent(""OrderStatusChanged"", new { order.OrderId, oldStatus, newStatus });
+    }
+}
+
+// Setup
+var order = new Order(""ORD-123"", ""customer@example.com"");
+order.Subscribe(new EmailNotifier(emailService));
+order.Subscribe(new InventoryUpdater());
+order.Subscribe(new AnalyticsTracker());
+
+// Status changes trigger all observers
+order.Status = OrderStatus.Confirmed;
+order.Status = OrderStatus.Shipped;",
+                Tags = new() { "Behavioral", "Event Handling", "GoF" }
+            },
+
+            new() {
+                Title = "Decorator",
+                Category = "Structural",
+                Difficulty = "Medium",
+                KeyConcepts = "Wrapper, dynamic behavior addition, single responsibility, composition",
+                UseCases = "Logging, caching, validation, compression, encryption",
+                Lesson = @"# Decorator Pattern
+
+## Intent
+Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.
+
+## Structure
+```
+        ┌─────────────────┐
+        │   IComponent    │
+        ├─────────────────┤
+        │ Operation()     │
+        └─────────────────┘
+               ▲
+      ┌────────┴────────┐
+      │                 │
+┌─────────────┐  ┌──────────────┐
+│  Concrete   │  │  Decorator   │─────┐
+│  Component  │  ├──────────────┤     │
+└─────────────┘  │ _component   │◀────┘
+                 │ Operation()  │
+                 └──────────────┘
+                        ▲
+               ┌────────┴────────┐
+               │                 │
+         DecoratorA         DecoratorB
+```
+
+## Implementation
+```csharp
+// Component interface
+public interface IDataSource
+{
+    void WriteData(string data);
+    string ReadData();
+}
+
+// Concrete component
+public class FileDataSource : IDataSource
+{
+    private readonly string _filename;
+
+    public FileDataSource(string filename) => _filename = filename;
+
+    public void WriteData(string data)
+    {
+        File.WriteAllText(_filename, data);
+    }
+
+    public string ReadData()
+    {
+        return File.Exists(_filename) ? File.ReadAllText(_filename) : """";
+    }
+}
+
+// Base decorator
+public abstract class DataSourceDecorator : IDataSource
+{
+    protected readonly IDataSource _wrappee;
+
+    protected DataSourceDecorator(IDataSource source) => _wrappee = source;
+
+    public virtual void WriteData(string data) => _wrappee.WriteData(data);
+    public virtual string ReadData() => _wrappee.ReadData();
+}
+
+// Concrete decorators
+public class EncryptionDecorator : DataSourceDecorator
+{
+    public EncryptionDecorator(IDataSource source) : base(source) { }
+
+    public override void WriteData(string data)
+    {
+        var encrypted = Encrypt(data);
+        base.WriteData(encrypted);
+    }
+
+    public override string ReadData()
+    {
+        var data = base.ReadData();
+        return Decrypt(data);
+    }
+
+    private string Encrypt(string data) => Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
+    private string Decrypt(string data) => Encoding.UTF8.GetString(Convert.FromBase64String(data));
+}
+
+public class CompressionDecorator : DataSourceDecorator
+{
+    public CompressionDecorator(IDataSource source) : base(source) { }
+
+    public override void WriteData(string data)
+    {
+        var compressed = Compress(data);
+        base.WriteData(compressed);
+    }
+
+    public override string ReadData()
+    {
+        var data = base.ReadData();
+        return Decompress(data);
+    }
+
+    private string Compress(string data) { /* GZip compression */ return data; }
+    private string Decompress(string data) { /* GZip decompression */ return data; }
+}
+
+// Usage - decorators can be stacked
+IDataSource source = new FileDataSource(""data.txt"");
+source = new CompressionDecorator(source);  // Add compression
+source = new EncryptionDecorator(source);   // Add encryption on top
+
+source.WriteData(""Sensitive data"");  // Encrypts, then compresses, then writes
+var data = source.ReadData();         // Reads, decompresses, then decrypts
+```
+
+## Real-World: HTTP Handler Pipeline
+```csharp
+public interface IHttpHandler
+{
+    Task<HttpResponse> HandleAsync(HttpRequest request);
+}
+
+public class BaseHttpHandler : IHttpHandler
+{
+    public async Task<HttpResponse> HandleAsync(HttpRequest request)
+    {
+        // Actual HTTP processing
+        return await SendRequestAsync(request);
+    }
+}
+
+public class LoggingDecorator : IHttpHandler
+{
+    private readonly IHttpHandler _inner;
+    private readonly ILogger _logger;
+
+    public LoggingDecorator(IHttpHandler inner, ILogger logger)
+    {
+        _inner = inner;
+        _logger = logger;
+    }
+
+    public async Task<HttpResponse> HandleAsync(HttpRequest request)
+    {
+        _logger.LogInformation($""Request: {request.Method} {request.Url}"");
+        var stopwatch = Stopwatch.StartNew();
+
+        var response = await _inner.HandleAsync(request);
+
+        _logger.LogInformation($""Response: {response.StatusCode} in {stopwatch.ElapsedMilliseconds}ms"");
+        return response;
+    }
+}
+
+public class RetryDecorator : IHttpHandler
+{
+    private readonly IHttpHandler _inner;
+    private readonly int _maxRetries;
+
+    public RetryDecorator(IHttpHandler inner, int maxRetries = 3)
+    {
+        _inner = inner;
+        _maxRetries = maxRetries;
+    }
+
+    public async Task<HttpResponse> HandleAsync(HttpRequest request)
+    {
+        for (int i = 0; i <= _maxRetries; i++)
+        {
+            try
+            {
+                return await _inner.HandleAsync(request);
+            }
+            catch when (i < _maxRetries)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
+            }
+        }
+        throw new HttpRequestException(""Max retries exceeded"");
+    }
+}
+
+public class CachingDecorator : IHttpHandler
+{
+    private readonly IHttpHandler _inner;
+    private readonly ICache _cache;
+
+    public CachingDecorator(IHttpHandler inner, ICache cache)
+    {
+        _inner = inner;
+        _cache = cache;
+    }
+
+    public async Task<HttpResponse> HandleAsync(HttpRequest request)
+    {
+        if (request.Method == ""GET"")
+        {
+            var cached = _cache.Get<HttpResponse>(request.Url);
+            if (cached != null) return cached;
+        }
+
+        var response = await _inner.HandleAsync(request);
+
+        if (request.Method == ""GET"" && response.IsSuccess)
+            _cache.Set(request.Url, response, TimeSpan.FromMinutes(5));
+
+        return response;
+    }
+}
+
+// Build pipeline
+IHttpHandler handler = new BaseHttpHandler();
+handler = new CachingDecorator(handler, cache);
+handler = new RetryDecorator(handler, maxRetries: 3);
+handler = new LoggingDecorator(handler, logger);
+```",
+                CodeExample = @"// Stream decorators in .NET
+public class AuditingStream : Stream
+{
+    private readonly Stream _inner;
+    private readonly ILogger _logger;
+    private long _bytesRead;
+    private long _bytesWritten;
+
+    public AuditingStream(Stream inner, ILogger logger)
+    {
+        _inner = inner;
+        _logger = logger;
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        var bytesRead = _inner.Read(buffer, offset, count);
+        _bytesRead += bytesRead;
+        _logger.LogDebug($""Read {bytesRead} bytes (total: {_bytesRead})"");
+        return bytesRead;
+    }
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        _inner.Write(buffer, offset, count);
+        _bytesWritten += count;
+        _logger.LogDebug($""Wrote {count} bytes (total: {_bytesWritten})"");
+    }
+
+    // Delegate other members to _inner...
+    public override bool CanRead => _inner.CanRead;
+    public override bool CanSeek => _inner.CanSeek;
+    public override bool CanWrite => _inner.CanWrite;
+    public override long Length => _inner.Length;
+    public override long Position
+    {
+        get => _inner.Position;
+        set => _inner.Position = value;
+    }
+    public override void Flush() => _inner.Flush();
+    public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+    public override void SetLength(long value) => _inner.SetLength(value);
+}
+
+// Usage with built-in .NET decorators
+Stream stream = new FileStream(""data.bin"", FileMode.Create);
+stream = new BufferedStream(stream);      // Add buffering
+stream = new GZipStream(stream, CompressionMode.Compress);  // Add compression
+stream = new CryptoStream(stream, encryptor, CryptoStreamMode.Write);  // Add encryption
+stream = new AuditingStream(stream, logger);  // Add our custom auditing",
+                Tags = new() { "Structural", "Wrapper", "GoF" }
+            },
+
+            new() {
+                Title = "Adapter",
+                Category = "Structural",
+                Difficulty = "Easy",
+                KeyConcepts = "Interface conversion, legacy integration, wrapper, bridge between incompatible interfaces",
+                UseCases = "Legacy system integration, third-party libraries, API versioning",
+                Lesson = @"# Adapter Pattern
+
+## Intent
+Convert the interface of a class into another interface clients expect. Adapter lets classes work together that couldn't otherwise because of incompatible interfaces.
+
+## Types of Adapters
+1. **Object Adapter** - Uses composition (preferred)
+2. **Class Adapter** - Uses inheritance (less flexible)
+
+## Implementation
+```csharp
+// Target interface (what client expects)
+public interface ILogger
+{
+    void Log(string message);
+    void LogError(string message, Exception ex);
+    void LogWarning(string message);
+}
+
+// Adaptee (legacy/third-party class with incompatible interface)
+public class LegacyLogger
+{
+    public void WriteLog(int severity, string msg)
+    {
+        Console.WriteLine($""[{severity}] {msg}"");
+    }
+}
+
+// Another adaptee
+public class ThirdPartyLogger
+{
+    public void Write(LogEntry entry)
+    {
+        Console.WriteLine($""{entry.Timestamp}: {entry.Level} - {entry.Message}"");
+    }
+}
+
+public class LogEntry
+{
+    public DateTime Timestamp { get; set; }
+    public string Level { get; set; }
+    public string Message { get; set; }
+}
+
+// Object Adapter for legacy logger
+public class LegacyLoggerAdapter : ILogger
+{
+    private readonly LegacyLogger _legacyLogger;
+
+    public LegacyLoggerAdapter(LegacyLogger legacyLogger)
+    {
+        _legacyLogger = legacyLogger;
+    }
+
+    public void Log(string message) => _legacyLogger.WriteLog(1, message);
+    public void LogError(string message, Exception ex)
+        => _legacyLogger.WriteLog(3, $""{message}: {ex.Message}"");
+    public void LogWarning(string message) => _legacyLogger.WriteLog(2, message);
+}
+
+// Object Adapter for third-party logger
+public class ThirdPartyLoggerAdapter : ILogger
+{
+    private readonly ThirdPartyLogger _logger;
+
+    public ThirdPartyLoggerAdapter(ThirdPartyLogger logger)
+    {
+        _logger = logger;
+    }
+
+    public void Log(string message)
+    {
+        _logger.Write(new LogEntry
+        {
+            Timestamp = DateTime.Now,
+            Level = ""INFO"",
+            Message = message
+        });
+    }
+
+    public void LogError(string message, Exception ex)
+    {
+        _logger.Write(new LogEntry
+        {
+            Timestamp = DateTime.Now,
+            Level = ""ERROR"",
+            Message = $""{message}: {ex.Message}""
+        });
+    }
+
+    public void LogWarning(string message)
+    {
+        _logger.Write(new LogEntry
+        {
+            Timestamp = DateTime.Now,
+            Level = ""WARN"",
+            Message = message
+        });
+    }
+}
+
+// Usage
+ILogger logger = new LegacyLoggerAdapter(new LegacyLogger());
+logger.Log(""Application started"");
+logger.LogError(""Failed to connect"", new Exception(""Connection timeout""));
+```
+
+## Real-World: Payment Gateway Adapters
+```csharp
+// Our unified payment interface
+public interface IPaymentGateway
+{
+    Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request);
+    Task<RefundResult> RefundAsync(string transactionId, decimal amount);
+}
+
+// Stripe's API (different interface)
+public class StripeClient
+{
+    public async Task<StripeCharge> CreateChargeAsync(
+        long amountInCents,
+        string currency,
+        string cardToken) { /* ... */ }
+
+    public async Task<StripeRefund> CreateRefundAsync(
+        string chargeId,
+        long amountInCents) { /* ... */ }
+}
+
+// PayPal's API (completely different)
+public class PayPalClient
+{
+    public async Task<PayPalPayment> ExecutePaymentAsync(
+        PayPalOrder order) { /* ... */ }
+
+    public async Task<PayPalRefund> RefundPaymentAsync(
+        string saleId,
+        PayPalAmount amount) { /* ... */ }
+}
+
+// Stripe Adapter
+public class StripeAdapter : IPaymentGateway
+{
+    private readonly StripeClient _stripe;
+
+    public StripeAdapter(StripeClient stripe) => _stripe = stripe;
+
+    public async Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
+    {
+        var charge = await _stripe.CreateChargeAsync(
+            (long)(request.Amount * 100),  // Convert to cents
+            request.Currency,
+            request.CardToken);
+
+        return new PaymentResult
+        {
+            Success = charge.Status == ""succeeded"",
+            TransactionId = charge.Id,
+            Message = charge.Status
+        };
+    }
+
+    public async Task<RefundResult> RefundAsync(string transactionId, decimal amount)
+    {
+        var refund = await _stripe.CreateRefundAsync(
+            transactionId,
+            (long)(amount * 100));
+
+        return new RefundResult
+        {
+            Success = refund.Status == ""succeeded"",
+            RefundId = refund.Id
+        };
+    }
+}
+
+// PayPal Adapter
+public class PayPalAdapter : IPaymentGateway
+{
+    private readonly PayPalClient _paypal;
+
+    public PayPalAdapter(PayPalClient paypal) => _paypal = paypal;
+
+    public async Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
+    {
+        var order = new PayPalOrder
+        {
+            Amount = new PayPalAmount { Value = request.Amount, Currency = request.Currency }
+        };
+
+        var payment = await _paypal.ExecutePaymentAsync(order);
+
+        return new PaymentResult
+        {
+            Success = payment.State == ""approved"",
+            TransactionId = payment.Id,
+            Message = payment.State
+        };
+    }
+
+    public async Task<RefundResult> RefundAsync(string transactionId, decimal amount)
+    {
+        var refund = await _paypal.RefundPaymentAsync(
+            transactionId,
+            new PayPalAmount { Value = amount });
+
+        return new RefundResult
+        {
+            Success = refund.State == ""completed"",
+            RefundId = refund.Id
+        };
+    }
+}
+```",
+                CodeExample = @"// Data Format Adapters
+public interface IDataReader
+{
+    IEnumerable<Record> ReadRecords();
+}
+
+public class Record
+{
+    public Dictionary<string, object> Fields { get; set; }
+}
+
+// XML Reader (legacy format)
+public class XmlDataReader
+{
+    public XDocument ReadXml(string path) => XDocument.Load(path);
+}
+
+// CSV Reader (another format)
+public class CsvReader
+{
+    public IEnumerable<string[]> ReadRows(string path)
+    {
+        return File.ReadLines(path).Select(line => line.Split(','));
+    }
+}
+
+// Adapters
+public class XmlDataReaderAdapter : IDataReader
+{
+    private readonly XmlDataReader _xmlReader;
+    private readonly string _path;
+
+    public XmlDataReaderAdapter(XmlDataReader reader, string path)
+    {
+        _xmlReader = reader;
+        _path = path;
+    }
+
+    public IEnumerable<Record> ReadRecords()
+    {
+        var doc = _xmlReader.ReadXml(_path);
+        foreach (var element in doc.Root.Elements())
+        {
+            yield return new Record
+            {
+                Fields = element.Elements()
+                    .ToDictionary(e => e.Name.LocalName, e => (object)e.Value)
+            };
+        }
+    }
+}
+
+public class CsvDataReaderAdapter : IDataReader
+{
+    private readonly CsvReader _csvReader;
+    private readonly string _path;
+
+    public CsvDataReaderAdapter(CsvReader reader, string path)
+    {
+        _csvReader = reader;
+        _path = path;
+    }
+
+    public IEnumerable<Record> ReadRecords()
+    {
+        var rows = _csvReader.ReadRows(_path).ToList();
+        var headers = rows.First();
+
+        foreach (var row in rows.Skip(1))
+        {
+            yield return new Record
+            {
+                Fields = headers.Zip(row, (h, v) => (h, v))
+                    .ToDictionary(x => x.h, x => (object)x.v)
+            };
+        }
+    }
+}
+
+// Usage - client code works with any format
+public class DataImporter
+{
+    public void Import(IDataReader reader)
+    {
+        foreach (var record in reader.ReadRecords())
+        {
+            ProcessRecord(record);
+        }
+    }
+}
+
+var importer = new DataImporter();
+importer.Import(new XmlDataReaderAdapter(new XmlDataReader(), ""data.xml""));
+importer.Import(new CsvDataReaderAdapter(new CsvReader(), ""data.csv""));",
+                Tags = new() { "Structural", "Interface Conversion", "GoF" }
+            },
+
+            new() {
+                Title = "Command",
+                Category = "Behavioral",
+                Difficulty = "Medium",
+                KeyConcepts = "Encapsulate request as object, undo/redo, queuing, logging",
+                UseCases = "Undo operations, transaction management, task queues, macro recording",
+                Lesson = @"# Command Pattern
+
+## Intent
+Encapsulate a request as an object, thereby letting you parameterize clients with different requests, queue or log requests, and support undoable operations.
+
+## Structure
+```
+┌─────────────┐      ┌─────────────────┐
+│   Invoker   │─────▶│    ICommand     │
+└─────────────┘      ├─────────────────┤
+                     │ Execute()       │
+                     │ Undo()          │
+                     └─────────────────┘
+                              ▲
+                     ┌────────┴────────┐
+                     │                 │
+              ConcreteCommandA  ConcreteCommandB
+                     │                 │
+                     ▼                 ▼
+                 Receiver          Receiver
+```
+
+## Implementation
+```csharp
+// Command interface
+public interface ICommand
+{
+    void Execute();
+    void Undo();
+}
+
+// Receiver
+public class Document
+{
+    public StringBuilder Content { get; } = new();
+
+    public void InsertText(int position, string text)
+    {
+        Content.Insert(position, text);
+    }
+
+    public void DeleteText(int position, int length)
+    {
+        Content.Remove(position, length);
+    }
+}
+
+// Concrete Commands
+public class InsertTextCommand : ICommand
+{
+    private readonly Document _document;
+    private readonly int _position;
+    private readonly string _text;
+
+    public InsertTextCommand(Document document, int position, string text)
+    {
+        _document = document;
+        _position = position;
+        _text = text;
+    }
+
+    public void Execute() => _document.InsertText(_position, _text);
+    public void Undo() => _document.DeleteText(_position, _text.Length);
+}
+
+public class DeleteTextCommand : ICommand
+{
+    private readonly Document _document;
+    private readonly int _position;
+    private readonly int _length;
+    private string _deletedText;
+
+    public DeleteTextCommand(Document document, int position, int length)
+    {
+        _document = document;
+        _position = position;
+        _length = length;
+    }
+
+    public void Execute()
+    {
+        _deletedText = _document.Content.ToString(_position, _length);
+        _document.DeleteText(_position, _length);
+    }
+
+    public void Undo() => _document.InsertText(_position, _deletedText);
+}
+
+// Invoker with undo/redo support
+public class TextEditor
+{
+    private readonly Stack<ICommand> _undoStack = new();
+    private readonly Stack<ICommand> _redoStack = new();
+    public Document Document { get; } = new();
+
+    public void ExecuteCommand(ICommand command)
+    {
+        command.Execute();
+        _undoStack.Push(command);
+        _redoStack.Clear();  // Clear redo after new action
+    }
+
+    public void Undo()
+    {
+        if (_undoStack.Count > 0)
+        {
+            var command = _undoStack.Pop();
+            command.Undo();
+            _redoStack.Push(command);
+        }
+    }
+
+    public void Redo()
+    {
+        if (_redoStack.Count > 0)
+        {
+            var command = _redoStack.Pop();
+            command.Execute();
+            _undoStack.Push(command);
+        }
+    }
+}
+
+// Usage
+var editor = new TextEditor();
+editor.ExecuteCommand(new InsertTextCommand(editor.Document, 0, ""Hello ""));
+editor.ExecuteCommand(new InsertTextCommand(editor.Document, 6, ""World!""));
+// Document: ""Hello World!""
+
+editor.Undo();  // Document: ""Hello ""
+editor.Undo();  // Document: """"
+editor.Redo();  // Document: ""Hello ""
+```
+
+## Macro Commands (Composite)
+```csharp
+public class MacroCommand : ICommand
+{
+    private readonly List<ICommand> _commands = new();
+
+    public void AddCommand(ICommand command) => _commands.Add(command);
+
+    public void Execute()
+    {
+        foreach (var command in _commands)
+            command.Execute();
+    }
+
+    public void Undo()
+    {
+        // Undo in reverse order
+        for (int i = _commands.Count - 1; i >= 0; i--)
+            _commands[i].Undo();
+    }
+}
+
+// Usage
+var macro = new MacroCommand();
+macro.AddCommand(new InsertTextCommand(doc, 0, ""Header\n""));
+macro.AddCommand(new InsertTextCommand(doc, 7, ""Content\n""));
+macro.AddCommand(new InsertTextCommand(doc, 15, ""Footer""));
+
+editor.ExecuteCommand(macro);  // Executes all
+editor.Undo();  // Undoes all
+```
+
+## Command Queue / Task Processing
+```csharp
+public interface IAsyncCommand
+{
+    Task ExecuteAsync(CancellationToken cancellationToken = default);
+}
+
+public class CommandQueue
+{
+    private readonly Queue<IAsyncCommand> _queue = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    public void Enqueue(IAsyncCommand command)
+    {
+        _queue.Enqueue(command);
+    }
+
+    public async Task ProcessAllAsync(CancellationToken cancellationToken = default)
+    {
+        await _semaphore.WaitAsync(cancellationToken);
+        try
+        {
+            while (_queue.Count > 0)
+            {
+                var command = _queue.Dequeue();
+                await command.ExecuteAsync(cancellationToken);
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+}
+```",
+                CodeExample = @"// Order Management with Command Pattern
+public interface IOrderCommand
+{
+    Task ExecuteAsync();
+    Task UndoAsync();
+    string Description { get; }
+}
+
+public class CreateOrderCommand : IOrderCommand
+{
+    private readonly IOrderRepository _repository;
+    private readonly Order _order;
+
+    public CreateOrderCommand(IOrderRepository repository, Order order)
+    {
+        _repository = repository;
+        _order = order;
+    }
+
+    public string Description => $""Create Order {_order.Id}"";
+
+    public async Task ExecuteAsync()
+    {
+        await _repository.AddAsync(_order);
+    }
+
+    public async Task UndoAsync()
+    {
+        await _repository.DeleteAsync(_order.Id);
+    }
+}
+
+public class UpdateOrderStatusCommand : IOrderCommand
+{
+    private readonly IOrderRepository _repository;
+    private readonly string _orderId;
+    private readonly OrderStatus _newStatus;
+    private OrderStatus _previousStatus;
+
+    public UpdateOrderStatusCommand(IOrderRepository repository, string orderId, OrderStatus newStatus)
+    {
+        _repository = repository;
+        _orderId = orderId;
+        _newStatus = newStatus;
+    }
+
+    public string Description => $""Update Order {_orderId} to {_newStatus}"";
+
+    public async Task ExecuteAsync()
+    {
+        var order = await _repository.GetByIdAsync(_orderId);
+        _previousStatus = order.Status;
+        order.Status = _newStatus;
+        await _repository.UpdateAsync(order);
+    }
+
+    public async Task UndoAsync()
+    {
+        var order = await _repository.GetByIdAsync(_orderId);
+        order.Status = _previousStatus;
+        await _repository.UpdateAsync(order);
+    }
+}
+
+// Command handler with audit logging
+public class OrderCommandHandler
+{
+    private readonly Stack<IOrderCommand> _history = new();
+    private readonly ILogger _logger;
+
+    public OrderCommandHandler(ILogger logger) => _logger = logger;
+
+    public async Task ExecuteAsync(IOrderCommand command)
+    {
+        _logger.LogInformation($""Executing: {command.Description}"");
+        await command.ExecuteAsync();
+        _history.Push(command);
+        _logger.LogInformation($""Completed: {command.Description}"");
+    }
+
+    public async Task UndoLastAsync()
+    {
+        if (_history.Count > 0)
+        {
+            var command = _history.Pop();
+            _logger.LogInformation($""Undoing: {command.Description}"");
+            await command.UndoAsync();
+        }
+    }
+}",
+                Tags = new() { "Behavioral", "Undo/Redo", "GoF" }
+            },
+
+            new() {
+                Title = "Facade",
+                Category = "Structural",
+                Difficulty = "Easy",
+                KeyConcepts = "Simplified interface, subsystem encapsulation, reduced complexity",
+                UseCases = "Library wrappers, API simplification, legacy system integration",
+                Lesson = @"# Facade Pattern
+
+## Intent
+Provide a unified interface to a set of interfaces in a subsystem. Facade defines a higher-level interface that makes the subsystem easier to use.
+
+## Structure
+```
+┌─────────────────────────────────────────────────┐
+│                    Facade                        │
+│  ┌──────────────────────────────────────────┐   │
+│  │  SimpleOperation()                        │   │
+│  │  AnotherOperation()                       │   │
+│  └──────────────────────────────────────────┘   │
+│        │           │           │                 │
+│        ▼           ▼           ▼                 │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │SubsysA  │ │SubsysB  │ │SubsysC  │           │
+│  └─────────┘ └─────────┘ └─────────┘           │
+└─────────────────────────────────────────────────┘
+```
+
+## Implementation
+```csharp
+// Complex subsystem classes
+public class VideoFile
+{
+    public string Filename { get; }
+    public string CodecType { get; }
+
+    public VideoFile(string filename)
+    {
+        Filename = filename;
+        CodecType = filename.EndsWith("".mp4"") ? ""mp4"" : ""ogg"";
+    }
+}
+
+public class CodecFactory
+{
+    public ICodec GetCodec(string type) => type switch
+    {
+        ""mp4"" => new MPEG4Codec(),
+        ""ogg"" => new OggCodec(),
+        _ => throw new NotSupportedException()
+    };
+}
+
+public interface ICodec { byte[] Decode(byte[] data); }
+public class MPEG4Codec : ICodec { public byte[] Decode(byte[] data) => data; }
+public class OggCodec : ICodec { public byte[] Decode(byte[] data) => data; }
+
+public class BitrateReader
+{
+    public byte[] Read(string filename, ICodec codec)
+    {
+        var data = File.ReadAllBytes(filename);
+        return codec.Decode(data);
+    }
+}
+
+public class AudioMixer
+{
+    public byte[] MixAudio(byte[] video) => video; // Simplified
+}
+
+// Facade - simplifies video conversion
+public class VideoConverterFacade
+{
+    public byte[] ConvertVideo(string filename, string format)
+    {
+        var file = new VideoFile(filename);
+        var codecFactory = new CodecFactory();
+        var sourceCodec = codecFactory.GetCodec(file.CodecType);
+
+        var bitrateReader = new BitrateReader();
+        var buffer = bitrateReader.Read(filename, sourceCodec);
+
+        var audioMixer = new AudioMixer();
+        var result = audioMixer.MixAudio(buffer);
+
+        var destinationCodec = codecFactory.GetCodec(format);
+        // Further conversion...
+
+        return result;
+    }
+}
+
+// Usage - client doesn't need to know about subsystems
+var converter = new VideoConverterFacade();
+var mp4Data = converter.ConvertVideo(""video.ogg"", ""mp4"");
+```
+
+## Real-World: Email Service Facade
+```csharp
+// Complex subsystems
+public class SmtpClient
+{
+    public void Connect(string server, int port) { }
+    public void Authenticate(string user, string password) { }
+    public void SendMail(MailMessage message) { }
+    public void Disconnect() { }
+}
+
+public class TemplateEngine
+{
+    public string Render(string template, object model)
+    {
+        // Complex template rendering
+        return template;
+    }
+}
+
+public class AttachmentProcessor
+{
+    public MailAttachment Process(string filePath)
+    {
+        var bytes = File.ReadAllBytes(filePath);
+        return new MailAttachment(Path.GetFileName(filePath), bytes);
+    }
+}
+
+public class EmailValidator
+{
+    public bool Validate(string email)
+    {
+        return Regex.IsMatch(email, @""^[\w\.-]+@[\w\.-]+\.\w+$"");
+    }
+}
+
+// Facade
+public class EmailServiceFacade
+{
+    private readonly SmtpClient _smtp;
+    private readonly TemplateEngine _templateEngine;
+    private readonly AttachmentProcessor _attachmentProcessor;
+    private readonly EmailValidator _validator;
+    private readonly EmailConfig _config;
+
+    public EmailServiceFacade(EmailConfig config)
+    {
+        _config = config;
+        _smtp = new SmtpClient();
+        _templateEngine = new TemplateEngine();
+        _attachmentProcessor = new AttachmentProcessor();
+        _validator = new EmailValidator();
+    }
+
+    public async Task SendEmailAsync(
+        string to,
+        string subject,
+        string templateName,
+        object model,
+        params string[] attachmentPaths)
+    {
+        // Validate
+        if (!_validator.Validate(to))
+            throw new ArgumentException(""Invalid email address"");
+
+        // Render template
+        var template = await LoadTemplateAsync(templateName);
+        var body = _templateEngine.Render(template, model);
+
+        // Process attachments
+        var attachments = attachmentPaths
+            .Select(path => _attachmentProcessor.Process(path))
+            .ToList();
+
+        // Build message
+        var message = new MailMessage
+        {
+            From = _config.FromAddress,
+            To = to,
+            Subject = subject,
+            Body = body,
+            Attachments = attachments
+        };
+
+        // Send
+        _smtp.Connect(_config.SmtpServer, _config.SmtpPort);
+        _smtp.Authenticate(_config.Username, _config.Password);
+        _smtp.SendMail(message);
+        _smtp.Disconnect();
+    }
+
+    // Simple methods hide complexity
+    public Task SendWelcomeEmailAsync(User user)
+    {
+        return SendEmailAsync(
+            user.Email,
+            ""Welcome!"",
+            ""welcome"",
+            new { user.Name, user.Email });
+    }
+
+    public Task SendOrderConfirmationAsync(Order order)
+    {
+        return SendEmailAsync(
+            order.CustomerEmail,
+            $""Order Confirmation #{order.Id}"",
+            ""order-confirmation"",
+            order,
+            order.InvoicePath);
+    }
+}
+
+// Usage - simple for clients
+var emailService = new EmailServiceFacade(config);
+await emailService.SendWelcomeEmailAsync(newUser);
+await emailService.SendOrderConfirmationAsync(order);
+```",
+                CodeExample = @"// Home Automation Facade
+public class Light { public void On() { } public void Off() { } public void Dim(int level) { } }
+public class TV { public void On() { } public void Off() { } public void SetChannel(int ch) { } }
+public class SoundSystem { public void On() { } public void Off() { } public void SetVolume(int vol) { } }
+public class Thermostat { public void SetTemperature(int temp) { } }
+public class SecuritySystem { public void Arm() { } public void Disarm() { } }
+
+// Facade
+public class SmartHomeFacade
+{
+    private readonly Light _livingRoomLight;
+    private readonly Light _bedroomLight;
+    private readonly TV _tv;
+    private readonly SoundSystem _soundSystem;
+    private readonly Thermostat _thermostat;
+    private readonly SecuritySystem _security;
+
+    public SmartHomeFacade()
+    {
+        _livingRoomLight = new Light();
+        _bedroomLight = new Light();
+        _tv = new TV();
+        _soundSystem = new SoundSystem();
+        _thermostat = new Thermostat();
+        _security = new SecuritySystem();
+    }
+
+    public void MovieMode()
+    {
+        Console.WriteLine(""Setting up movie mode..."");
+        _livingRoomLight.Dim(20);
+        _tv.On();
+        _soundSystem.On();
+        _soundSystem.SetVolume(50);
+        _thermostat.SetTemperature(72);
+    }
+
+    public void LeaveHome()
+    {
+        Console.WriteLine(""Leaving home..."");
+        _livingRoomLight.Off();
+        _bedroomLight.Off();
+        _tv.Off();
+        _soundSystem.Off();
+        _thermostat.SetTemperature(65);
+        _security.Arm();
+    }
+
+    public void ArriveHome()
+    {
+        Console.WriteLine(""Welcome home!"");
+        _security.Disarm();
+        _livingRoomLight.On();
+        _thermostat.SetTemperature(72);
+    }
+
+    public void Goodnight()
+    {
+        Console.WriteLine(""Goodnight mode..."");
+        _livingRoomLight.Off();
+        _bedroomLight.Dim(10);
+        _tv.Off();
+        _soundSystem.Off();
+        _thermostat.SetTemperature(68);
+        _security.Arm();
+    }
+}
+
+// Usage
+var home = new SmartHomeFacade();
+home.ArriveHome();
+home.MovieMode();
+home.Goodnight();",
+                Tags = new() { "Structural", "Simplification", "GoF" }
+            },
+
+            new() {
+                Title = "Unit of Work",
+                Category = "Architectural",
+                Difficulty = "Medium",
+                KeyConcepts = "Transaction management, change tracking, batch persistence, consistency",
+                UseCases = "Database transactions, ORM patterns, data consistency",
+                Lesson = @"# Unit of Work Pattern
+
+## Intent
+Maintains a list of objects affected by a business transaction and coordinates the writing out of changes and the resolution of concurrency problems.
+
+## Why Use It?
+- **Consistency**: All changes committed or rolled back together
+- **Performance**: Batch database operations
+- **Simplicity**: Transaction management in one place
+- **Testability**: Easy to mock for unit tests
+
+## Implementation
+```csharp
+// Unit of Work interface
+public interface IUnitOfWork : IDisposable
+{
+    IRepository<Customer> Customers { get; }
+    IRepository<Order> Orders { get; }
+    IRepository<Product> Products { get; }
+
+    Task<int> SaveChangesAsync();
+    Task BeginTransactionAsync();
+    Task CommitAsync();
+    Task RollbackAsync();
+}
+
+// Generic Repository interface
+public interface IRepository<T> where T : class
+{
+    Task<T> GetByIdAsync(int id);
+    Task<IEnumerable<T>> GetAllAsync();
+    Task AddAsync(T entity);
+    void Update(T entity);
+    void Delete(T entity);
+}
+
+// EF Core implementation
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly AppDbContext _context;
+    private IDbContextTransaction _transaction;
+
+    private IRepository<Customer> _customers;
+    private IRepository<Order> _orders;
+    private IRepository<Product> _products;
+
+    public UnitOfWork(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public IRepository<Customer> Customers =>
+        _customers ??= new Repository<Customer>(_context);
+
+    public IRepository<Order> Orders =>
+        _orders ??= new Repository<Order>(_context);
+
+    public IRepository<Product> Products =>
+        _products ??= new Repository<Product>(_context);
+
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+
+    public async Task BeginTransactionAsync()
+    {
+        _transaction = await _context.Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitAsync()
+    {
+        await _transaction.CommitAsync();
+    }
+
+    public async Task RollbackAsync()
+    {
+        await _transaction.RollbackAsync();
+    }
+
+    public void Dispose()
+    {
+        _transaction?.Dispose();
+        _context.Dispose();
+    }
+}
+
+// Generic Repository implementation
+public class Repository<T> : IRepository<T> where T : class
+{
+    private readonly DbContext _context;
+    private readonly DbSet<T> _dbSet;
+
+    public Repository(DbContext context)
+    {
+        _context = context;
+        _dbSet = context.Set<T>();
+    }
+
+    public async Task<T> GetByIdAsync(int id)
+        => await _dbSet.FindAsync(id);
+
+    public async Task<IEnumerable<T>> GetAllAsync()
+        => await _dbSet.ToListAsync();
+
+    public async Task AddAsync(T entity)
+        => await _dbSet.AddAsync(entity);
+
+    public void Update(T entity)
+        => _dbSet.Update(entity);
+
+    public void Delete(T entity)
+        => _dbSet.Remove(entity);
+}
+```
+
+## Usage in Service Layer
+```csharp
+public class OrderService
+{
+    private readonly IUnitOfWork _unitOfWork;
+
+    public OrderService(IUnitOfWork unitOfWork)
+    {
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Order> CreateOrderAsync(CreateOrderRequest request)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+
+        try
+        {
+            // Get customer
+            var customer = await _unitOfWork.Customers.GetByIdAsync(request.CustomerId);
+            if (customer == null)
+                throw new NotFoundException(""Customer not found"");
+
+            // Create order
+            var order = new Order
+            {
+                CustomerId = customer.Id,
+                OrderDate = DateTime.UtcNow,
+                Status = OrderStatus.Pending
+            };
+
+            // Add order items and update inventory
+            foreach (var item in request.Items)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                if (product.Stock < item.Quantity)
+                    throw new InsufficientStockException(product.Name);
+
+                product.Stock -= item.Quantity;
+                _unitOfWork.Products.Update(product);
+
+                order.Items.Add(new OrderItem
+                {
+                    ProductId = product.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = product.Price
+                });
+            }
+
+            await _unitOfWork.Orders.AddAsync(order);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitAsync();
+
+            return order;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
+}
+```
+
+## Registration in DI Container
+```csharp
+// Program.cs
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Repositories are created by UnitOfWork, not registered separately
+```",
+                CodeExample = @"// Advanced: Specification Pattern with Unit of Work
+public interface ISpecification<T>
+{
+    Expression<Func<T, bool>> Criteria { get; }
+    List<Expression<Func<T, object>>> Includes { get; }
+    Expression<Func<T, object>> OrderBy { get; }
+    Expression<Func<T, object>> OrderByDescending { get; }
+    int Take { get; }
+    int Skip { get; }
+}
+
+public abstract class BaseSpecification<T> : ISpecification<T>
+{
+    public Expression<Func<T, bool>> Criteria { get; private set; }
+    public List<Expression<Func<T, object>>> Includes { get; } = new();
+    public Expression<Func<T, object>> OrderBy { get; private set; }
+    public Expression<Func<T, object>> OrderByDescending { get; private set; }
+    public int Take { get; private set; }
+    public int Skip { get; private set; }
+
+    protected void AddCriteria(Expression<Func<T, bool>> criteria) => Criteria = criteria;
+    protected void AddInclude(Expression<Func<T, object>> include) => Includes.Add(include);
+    protected void ApplyOrderBy(Expression<Func<T, object>> orderBy) => OrderBy = orderBy;
+    protected void ApplyPaging(int skip, int take) { Skip = skip; Take = take; }
+}
+
+// Example specification
+public class OrdersByCustomerSpec : BaseSpecification<Order>
+{
+    public OrdersByCustomerSpec(int customerId, int page, int pageSize)
+    {
+        AddCriteria(o => o.CustomerId == customerId);
+        AddInclude(o => o.Items);
+        AddInclude(o => o.Customer);
+        ApplyOrderBy(o => o.OrderDate);
+        ApplyPaging((page - 1) * pageSize, pageSize);
+    }
+}
+
+// Repository with specification support
+public interface IRepository<T> where T : class
+{
+    Task<IReadOnlyList<T>> ListAsync(ISpecification<T> spec);
+    Task<T> FirstOrDefaultAsync(ISpecification<T> spec);
+    Task<int> CountAsync(ISpecification<T> spec);
+}
+
+// Usage
+var spec = new OrdersByCustomerSpec(customerId: 1, page: 1, pageSize: 10);
+var orders = await _unitOfWork.Orders.ListAsync(spec);",
+                Tags = new() { "Architectural", "Transaction", "Data Access" }
+            },
+
+            new() {
+                Title = "Mediator",
+                Category = "Behavioral",
+                Difficulty = "Medium",
+                KeyConcepts = "Loose coupling, centralized communication, CQRS, request/response",
+                UseCases = "Chat applications, air traffic control, CQRS/MediatR",
+                Lesson = @"# Mediator Pattern
+
+## Intent
+Define an object that encapsulates how a set of objects interact. Mediator promotes loose coupling by keeping objects from referring to each other explicitly.
+
+## Structure
+```
+┌───────────┐    ┌───────────────┐    ┌───────────┐
+│ColleagueA │───▶│   Mediator    │◀───│ColleagueB │
+└───────────┘    └───────────────┘    └───────────┘
+                        │
+                        ▼
+                 ┌───────────┐
+                 │ColleagueC │
+                 └───────────┘
+```
+
+## Basic Implementation
+```csharp
+// Mediator interface
+public interface IChatMediator
+{
+    void SendMessage(string message, User sender);
+    void RegisterUser(User user);
+}
+
+// Colleague
+public abstract class User
+{
+    protected IChatMediator _mediator;
+    public string Name { get; }
+
+    protected User(IChatMediator mediator, string name)
+    {
+        _mediator = mediator;
+        Name = name;
+    }
+
+    public abstract void Send(string message);
+    public abstract void Receive(string message, User sender);
+}
+
+// Concrete Mediator
+public class ChatRoom : IChatMediator
+{
+    private readonly List<User> _users = new();
+
+    public void RegisterUser(User user)
+    {
+        _users.Add(user);
+    }
+
+    public void SendMessage(string message, User sender)
+    {
+        foreach (var user in _users)
+        {
+            if (user != sender)
+            {
+                user.Receive(message, sender);
+            }
+        }
+    }
+}
+
+// Concrete Colleague
+public class ChatUser : User
+{
+    public ChatUser(IChatMediator mediator, string name) : base(mediator, name) { }
+
+    public override void Send(string message)
+    {
+        Console.WriteLine($""{Name} sends: {message}"");
+        _mediator.SendMessage(message, this);
+    }
+
+    public override void Receive(string message, User sender)
+    {
+        Console.WriteLine($""{Name} receives from {sender.Name}: {message}"");
+    }
+}
+
+// Usage
+var chatRoom = new ChatRoom();
+
+var john = new ChatUser(chatRoom, ""John"");
+var jane = new ChatUser(chatRoom, ""Jane"");
+var bob = new ChatUser(chatRoom, ""Bob"");
+
+chatRoom.RegisterUser(john);
+chatRoom.RegisterUser(jane);
+chatRoom.RegisterUser(bob);
+
+john.Send(""Hello everyone!"");
+// Output:
+// John sends: Hello everyone!
+// Jane receives from John: Hello everyone!
+// Bob receives from John: Hello everyone!
+```
+
+## MediatR Library (CQRS Pattern)
+```csharp
+// Request/Response
+public record GetUserQuery(int Id) : IRequest<UserDto>;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
+{
+    private readonly IUserRepository _repository;
+
+    public GetUserHandler(IUserRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        var user = await _repository.GetByIdAsync(request.Id);
+        return user?.ToDto();
+    }
+}
+
+// Command (no response)
+public record CreateUserCommand(string Name, string Email) : IRequest<int>;
+
+public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+{
+    private readonly IUserRepository _repository;
+
+    public CreateUserHandler(IUserRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        var user = new User { Name = request.Name, Email = request.Email };
+        await _repository.AddAsync(user);
+        return user.Id;
+    }
+}
+
+// Notifications (publish to many handlers)
+public record UserCreatedNotification(int UserId, string Email) : INotification;
+
+public class SendWelcomeEmailHandler : INotificationHandler<UserCreatedNotification>
+{
+    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    {
+        // Send welcome email
+    }
+}
+
+public class CreateAuditLogHandler : INotificationHandler<UserCreatedNotification>
+{
+    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    {
+        // Create audit log
+    }
+}
+
+// Controller usage
+public class UsersController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public UsersController(IMediator mediator) => _mediator = mediator;
+
+    [HttpGet(""{id}"")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var user = await _mediator.Send(new GetUserQuery(id));
+        return user != null ? Ok(user) : NotFound();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateUserCommand command)
+    {
+        var id = await _mediator.Send(command);
+        await _mediator.Publish(new UserCreatedNotification(id, command.Email));
+        return CreatedAtAction(nameof(Get), new { id }, null);
+    }
+}
+```
+
+## Pipeline Behaviors
+```csharp
+// Validation behavior
+public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+{
+    private readonly IEnumerable<IValidator<TRequest>> _validators;
+
+    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
+    {
+        _validators = validators;
+    }
+
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var failures = _validators
+            .Select(v => v.Validate(request))
+            .SelectMany(r => r.Errors)
+            .Where(f => f != null)
+            .ToList();
+
+        if (failures.Any())
+            throw new ValidationException(failures);
+
+        return await next();
+    }
+}
+
+// Logging behavior
+public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+{
+    private readonly ILogger _logger;
+
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation($""Handling {typeof(TRequest).Name}"");
+        var response = await next();
+        _logger.LogInformation($""Handled {typeof(TRequest).Name}"");
+        return response;
+    }
+}
+
+// Registration
+services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+```",
+                CodeExample = @"// Complete CQRS Example with MediatR
+// Commands
+public record CreateOrderCommand(int CustomerId, List<OrderItemDto> Items) : IRequest<int>;
+
+public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, int>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMediator _mediator;
+
+    public CreateOrderHandler(IUnitOfWork unitOfWork, IMediator mediator)
+    {
+        _unitOfWork = unitOfWork;
+        _mediator = mediator;
+    }
+
+    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
+    {
+        var order = new Order { CustomerId = request.CustomerId };
+
+        foreach (var item in request.Items)
+        {
+            order.Items.Add(new OrderItem
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity
+            });
+        }
+
+        await _unitOfWork.Orders.AddAsync(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Publish domain event
+        await _mediator.Publish(new OrderCreatedEvent(order.Id), cancellationToken);
+
+        return order.Id;
+    }
+}
+
+// Queries
+public record GetOrdersQuery(int CustomerId, int Page, int PageSize) : IRequest<PagedResult<OrderDto>>;
+
+public class GetOrdersHandler : IRequestHandler<GetOrdersQuery, PagedResult<OrderDto>>
+{
+    private readonly IReadOnlyRepository<Order> _repository;
+
+    public async Task<PagedResult<OrderDto>> Handle(
+        GetOrdersQuery request,
+        CancellationToken cancellationToken)
+    {
+        var orders = await _repository.GetPagedAsync(
+            o => o.CustomerId == request.CustomerId,
+            request.Page,
+            request.PageSize);
+
+        return orders.MapTo<OrderDto>();
+    }
+}
+
+// Domain Events
+public record OrderCreatedEvent(int OrderId) : INotification;
+
+public class OrderCreatedEmailHandler : INotificationHandler<OrderCreatedEvent>
+{
+    public async Task Handle(OrderCreatedEvent notification, CancellationToken cancellationToken)
+    {
+        // Send confirmation email
+    }
+}
+
+public class OrderCreatedInventoryHandler : INotificationHandler<OrderCreatedEvent>
+{
+    public async Task Handle(OrderCreatedEvent notification, CancellationToken cancellationToken)
+    {
+        // Update inventory
+    }
+}",
+                Tags = new() { "Behavioral", "CQRS", "MediatR", "Loose Coupling" }
             }
         };
     }
