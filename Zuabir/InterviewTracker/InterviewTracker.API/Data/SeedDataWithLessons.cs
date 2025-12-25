@@ -4109,6 +4109,748 @@ public static class ServiceRegistration
 // Usage in Program.cs
 builder.Services.AddGeneratedServices();",
                 Tags = new() { "Source Generators", "Code Generation", "Compile-time", "Advanced" }
+            },
+
+            // Memory Management & Performance
+            new() {
+                Title = "Garbage Collection and Memory Management",
+                Category = "Memory",
+                Difficulty = "Medium",
+                DotNetVersion = "6.0+",
+                KeyConcepts = "GC Generations, LOH, Memory Pressure, Finalizers, IDisposable",
+                Lesson = @"# Garbage Collection in .NET
+
+## How GC Works
+
+The .NET Garbage Collector automatically manages memory allocation and deallocation. It uses a generational approach for efficiency.
+
+### Generations
+- **Gen 0**: Short-lived objects (local variables, temporary objects)
+- **Gen 1**: Buffer between short and long-lived
+- **Gen 2**: Long-lived objects (static data, application lifetime objects)
+
+### Large Object Heap (LOH)
+Objects >= 85KB go directly to LOH (treated as Gen 2).
+
+## Common Issues
+
+### Memory Leaks
+Even with GC, you can leak memory:
+- Event handlers not unsubscribed
+- Static collections holding references
+- Cached objects never removed
+
+### Performance Problems
+- Too many allocations trigger frequent GC
+- Large objects fragment LOH
+- Finalizers delay collection
+
+## Best Practices
+
+1. **Use `using` statements** for IDisposable
+2. **Avoid finalizers** unless absolutely necessary
+3. **Pool large objects** instead of allocating repeatedly
+4. **Unsubscribe events** when done
+5. **Use structs** for small, short-lived data",
+                CodeExample = @"// ❌ BAD: Memory leak - event never unsubscribed
+public class BadSubscriber
+{
+    public BadSubscriber(Publisher publisher)
+    {
+        publisher.OnDataReceived += HandleData;
+        // Subscriber can never be GC'd while Publisher lives!
+    }
+
+    private void HandleData(object sender, EventArgs e) { }
+}
+
+// ✅ GOOD: Properly unsubscribe
+public class GoodSubscriber : IDisposable
+{
+    private readonly Publisher _publisher;
+
+    public GoodSubscriber(Publisher publisher)
+    {
+        _publisher = publisher;
+        _publisher.OnDataReceived += HandleData;
+    }
+
+    public void Dispose()
+    {
+        _publisher.OnDataReceived -= HandleData;
+    }
+
+    private void HandleData(object sender, EventArgs e) { }
+}
+
+// Using IDisposable properly
+using (var subscriber = new GoodSubscriber(publisher))
+{
+    // Use subscriber
+} // Dispose called automatically
+
+// Object pooling for performance
+public class ObjectPool<T> where T : new()
+{
+    private readonly ConcurrentBag<T> _objects = new();
+
+    public T Rent()
+    {
+        return _objects.TryTake(out T item) ? item : new T();
+    }
+
+    public void Return(T item)
+    {
+        _objects.Add(item);
+    }
+}
+
+// Usage - avoid repeated allocations
+var pool = new ObjectPool<StringBuilder>();
+var sb = pool.Rent();
+try
+{
+    sb.Append(""Hello"");
+    // Use StringBuilder
+}
+finally
+{
+    sb.Clear();
+    pool.Return(sb);
+}
+
+// Force GC (rarely needed, for demonstration)
+GC.Collect();
+GC.WaitForPendingFinalizers();
+GC.Collect(); // Collect objects with finalizers",
+                Tags = new() { "GC", "Memory", "Performance", "IDisposable" }
+            },
+
+            new() {
+                Title = "Span<T> and Memory<T> for High-Performance Code",
+                Category = "Memory",
+                Difficulty = "Hard",
+                DotNetVersion = "7.0+",
+                KeyConcepts = "Stack allocation, Zero-copy, Slicing, ReadOnlySpan",
+                Lesson = @"# Span<T> and Memory<T>
+
+## What are they?
+
+**Span<T>**: A stack-only type that provides a safe view over contiguous memory. Cannot be stored in heap (fields, async methods).
+
+**Memory<T>**: Heap-allocated wrapper around Span<T>. Can be used in async methods and as fields.
+
+## Why Use Them?
+
+### Performance Benefits
+- **Zero allocations**: No heap allocations for slicing
+- **Stack-based**: Span<T> lives on stack
+- **Zero-copy**: Views existing memory without copying
+- **Unified API**: Works with arrays, strings, stack memory
+
+## When to Use
+
+- High-performance parsing
+- String manipulation without allocations
+- Working with binary data
+- Memory-critical scenarios (games, parsers, serializers)",
+                CodeExample = @"// ❌ OLD WAY: Multiple allocations
+string ProcessString(string input)
+{
+    string trimmed = input.Trim(); // Allocation 1
+    string lower = trimmed.ToLower(); // Allocation 2
+    string sub = lower.Substring(0, 10); // Allocation 3
+    return sub;
+}
+
+// ✅ NEW WAY: Zero allocations with Span
+void ProcessStringSpan(ReadOnlySpan<char> input, Span<char> output)
+{
+    var trimmed = input.Trim();
+    var first10 = trimmed.Slice(0, Math.Min(10, trimmed.Length));
+
+    for (int i = 0; i < first10.Length; i++)
+    {
+        output[i] = char.ToLower(first10[i]);
+    }
+}
+
+// Stack allocation - no heap usage!
+Span<char> buffer = stackalloc char[100];
+ProcessStringSpan(""  HELLO WORLD  "", buffer);
+
+// Slicing without allocation
+int[] numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+Span<int> allNumbers = numbers;
+Span<int> firstFive = allNumbers.Slice(0, 5); // No allocation!
+Span<int> lastFive = allNumbers.Slice(5); // No allocation!
+
+// Parsing with zero allocations
+ReadOnlySpan<char> ParseName(ReadOnlySpan<char> input)
+{
+    int commaIndex = input.IndexOf(',');
+    if (commaIndex == -1) return input.Trim();
+
+    return input.Slice(0, commaIndex).Trim();
+}
+
+// CSV parsing example
+void ParseCsvLine(ReadOnlySpan<char> line)
+{
+    while (line.Length > 0)
+    {
+        int commaIndex = line.IndexOf(',');
+        var field = commaIndex == -1
+            ? line
+            : line.Slice(0, commaIndex);
+
+        ProcessField(field); // Zero allocation!
+
+        line = commaIndex == -1
+            ? ReadOnlySpan<char>.Empty
+            : line.Slice(commaIndex + 1);
+    }
+}
+
+// Memory<T> for async scenarios
+async Task<int> ProcessDataAsync(Memory<byte> buffer)
+{
+    // Can use Memory<T> in async
+    await SomeAsyncOperation(buffer);
+
+    // Convert to Span when needed
+    Span<byte> span = buffer.Span;
+    return span.Length;
+}
+
+// Real-world example: Fast string parsing
+public static bool TryParseInt32Fast(ReadOnlySpan<char> s, out int result)
+{
+    result = 0;
+    if (s.IsEmpty) return false;
+
+    int sign = 1;
+    int i = 0;
+
+    if (s[0] == '-')
+    {
+        sign = -1;
+        i = 1;
+    }
+
+    for (; i < s.Length; i++)
+    {
+        if (s[i] < '0' || s[i] > '9') return false;
+        result = result * 10 + (s[i] - '0');
+    }
+
+    result *= sign;
+    return true;
+}",
+                Tags = new() { "Span", "Memory", "Performance", "Zero-allocation" }
+            },
+
+            new() {
+                Title = "Threading and Task Parallel Library (TPL)",
+                Category = "Async",
+                Difficulty = "Hard",
+                DotNetVersion = "6.0+",
+                KeyConcepts = "Tasks, Thread Pool, Parallel.ForEach, async/await, Synchronization",
+                Lesson = @"# Threading and TPL in .NET
+
+## Task vs Thread
+
+**Thread**: Low-level, expensive to create, dedicated OS thread
+**Task**: High-level, uses thread pool, lightweight
+
+## When to Use What
+
+### Use Tasks for:
+- I/O-bound operations (file, network, database)
+- Parallel CPU-bound work
+- Most async scenarios
+
+### Use Threads for:
+- Long-running CPU-intensive work
+- Need dedicated thread (rare)
+
+## Common Patterns
+
+### CPU-Bound Parallelism
+Use `Parallel.ForEach` or `Parallel.For` for data parallelism.
+
+### I/O-Bound Async
+Use `async/await` to avoid blocking threads.
+
+## Synchronization
+
+### Thread-Safe Collections
+- `ConcurrentDictionary<TKey, TValue>`
+- `ConcurrentQueue<T>`
+- `ConcurrentBag<T>`
+
+### Locking Primitives
+- `lock` keyword (Monitor)
+- `SemaphoreSlim` for async
+- `ReaderWriterLockSlim` for read-heavy scenarios",
+                CodeExample = @"// ❌ BAD: Creating threads manually
+void BadParallelProcessing(List<string> items)
+{
+    foreach (var item in items)
+    {
+        new Thread(() => ProcessItem(item)).Start(); // Expensive!
+    }
+}
+
+// ✅ GOOD: Use Task Parallel Library
+void GoodParallelProcessing(List<string> items)
+{
+    Parallel.ForEach(items, item =>
+    {
+        ProcessItem(item);
+    });
+}
+
+// CPU-bound work with degree of parallelism
+var options = new ParallelOptions
+{
+    MaxDegreeOfParallelism = Environment.ProcessorCount
+};
+
+Parallel.ForEach(largeDataSet, options, item =>
+{
+    // Process each item in parallel
+    var result = ExpensiveComputation(item);
+});
+
+// I/O-bound async operations
+async Task ProcessMultipleFiles(string[] filePaths)
+{
+    // Start all reads concurrently
+    var tasks = filePaths.Select(async path =>
+    {
+        var content = await File.ReadAllTextAsync(path);
+        return ProcessContent(content);
+    });
+
+    // Wait for all to complete
+    var results = await Task.WhenAll(tasks);
+}
+
+// Thread-safe dictionary
+var cache = new ConcurrentDictionary<string, Data>();
+
+// GetOrAdd is atomic
+var data = cache.GetOrAdd(""key"", key =>
+{
+    // This delegate only runs if key doesn't exist
+    return LoadExpensiveData(key);
+});
+
+// SemaphoreSlim for async throttling
+var semaphore = new SemaphoreSlim(5); // Max 5 concurrent operations
+
+async Task ProcessWithThrottling(IEnumerable<string> items)
+{
+    var tasks = items.Select(async item =>
+    {
+        await semaphore.WaitAsync();
+        try
+        {
+            await ProcessItemAsync(item);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    });
+
+    await Task.WhenAll(tasks);
+}
+
+// Cancellation tokens
+async Task LongRunningOperation(CancellationToken cancellationToken)
+{
+    for (int i = 0; i < 1000; i++)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await DoWorkAsync();
+    }
+}
+
+// Usage with timeout
+var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+try
+{
+    await LongRunningOperation(cts.Token);
+}
+catch (OperationCanceledException)
+{
+    Console.WriteLine(""Operation timed out"");
+}
+
+// Producer-Consumer pattern
+var channel = Channel.CreateUnbounded<WorkItem>();
+
+// Producer
+async Task Producer()
+{
+    for (int i = 0; i < 100; i++)
+    {
+        await channel.Writer.WriteAsync(new WorkItem(i));
+    }
+    channel.Writer.Complete();
+}
+
+// Consumer
+async Task Consumer()
+{
+    await foreach (var item in channel.Reader.ReadAllAsync())
+    {
+        await ProcessWorkItem(item);
+    }
+}
+
+// Start both
+await Task.WhenAll(Producer(), Consumer());",
+                Tags = new() { "Threading", "TPL", "Parallel", "async/await" }
+            },
+
+            new() {
+                Title = "Dependency Injection in .NET",
+                Category = "Modern C#",
+                Difficulty = "Medium",
+                DotNetVersion = "6.0+",
+                KeyConcepts = "IoC, Service Lifetimes, Constructor Injection, DI Container",
+                Lesson = @"# Dependency Injection in .NET
+
+## What is DI?
+
+Dependency Injection is a design pattern where objects receive their dependencies from external sources rather than creating them internally.
+
+## Service Lifetimes
+
+### Transient
+Created each time they're requested. Best for lightweight, stateless services.
+
+### Scoped
+Created once per request (web apps) or scope. Best for per-request data.
+
+### Singleton
+Created once and reused for the application lifetime. Best for stateless, shared services.
+
+## Constructor Injection
+
+The preferred way to inject dependencies. Makes dependencies explicit and testable.
+
+## When to Use Which Lifetime
+
+- **Transient**: Lightweight services, no shared state
+- **Scoped**: DbContext, per-request state, UnitOfWork
+- **Singleton**: Configuration, caches, stateless services
+
+## Common Patterns
+
+- **Options Pattern**: `IOptions<T>` for configuration
+- **Factory Pattern**: `IServiceProvider` or custom factories
+- **Named Services**: Using `IServiceCollection` with keys",
+                CodeExample = @"// ❌ BAD: Tight coupling, hard to test
+public class OrderService
+{
+    private readonly SqlConnection _connection;
+
+    public OrderService()
+    {
+        _connection = new SqlConnection(""connection-string""); // Hard-coded!
+    }
+
+    public void CreateOrder(Order order)
+    {
+        // Directly uses concrete SqlConnection
+    }
+}
+
+// ✅ GOOD: Dependency injection, loose coupling
+public interface IOrderRepository
+{
+    Task CreateOrderAsync(Order order);
+}
+
+public class OrderService
+{
+    private readonly IOrderRepository _repository;
+    private readonly ILogger<OrderService> _logger;
+
+    // Dependencies injected via constructor
+    public OrderService(
+        IOrderRepository repository,
+        ILogger<OrderService> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    public async Task CreateOrderAsync(Order order)
+    {
+        _logger.LogInformation(""Creating order {OrderId}"", order.Id);
+        await _repository.CreateOrderAsync(order);
+    }
+}
+
+// Registration in Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Register services with appropriate lifetimes
+builder.Services.AddTransient<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderRepository, SqlOrderRepository>();
+builder.Services.AddSingleton<IMemoryCache, MemoryCache>();
+
+// DbContext is Scoped by default
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Options pattern for configuration
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(""EmailSettings""));
+
+// Using IOptions<T>
+public class EmailService
+{
+    private readonly EmailSettings _settings;
+
+    public EmailService(IOptions<EmailSettings> options)
+    {
+        _settings = options.Value;
+    }
+
+    public void SendEmail(string to, string body)
+    {
+        // Use _settings.SmtpServer, etc.
+    }
+}
+
+// Factory pattern
+public interface INotificationFactory
+{
+    INotificationSender Create(NotificationType type);
+}
+
+public class NotificationFactory : INotificationFactory
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public NotificationFactory(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    public INotificationSender Create(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Email => _serviceProvider.GetRequiredService<EmailSender>(),
+            NotificationType.Sms => _serviceProvider.GetRequiredService<SmsSender>(),
+            _ => throw new ArgumentException(""Unknown type"")
+        };
+    }
+}
+
+// Keyed services (.NET 8+)
+builder.Services.AddKeyedScoped<INotificationSender, EmailSender>(""email"");
+builder.Services.AddKeyedScoped<INotificationSender, SmsSender>(""sms"");
+
+public class NotificationController : ControllerBase
+{
+    private readonly INotificationSender _emailSender;
+
+    public NotificationController(
+        [FromKeyedServices(""email"")] INotificationSender emailSender)
+    {
+        _emailSender = emailSender;
+    }
+}
+
+// Scoped service example
+public class RequestContext
+{
+    public string UserId { get; set; }
+    public DateTime RequestTime { get; set; }
+}
+
+// Middleware sets context
+app.Use(async (context, next) =>
+{
+    var requestContext = context.RequestServices.GetRequiredService<RequestContext>();
+    requestContext.RequestTime = DateTime.UtcNow;
+    requestContext.UserId = context.User.FindFirst(""sub"")?.Value;
+
+    await next();
+});",
+                Tags = new() { "DI", "IoC", "Service Lifetimes", "Constructor Injection" }
+            },
+
+            new() {
+                Title = "Records and Pattern Matching (Modern C#)",
+                Category = "Modern C#",
+                Difficulty = "Medium",
+                DotNetVersion = "9.0+",
+                KeyConcepts = "Records, Pattern Matching, Switch Expressions, Deconstruction",
+                Lesson = @"# Modern C# Features: Records & Pattern Matching
+
+## Records (C# 9+)
+
+Records are reference types designed for immutable data models. They provide value-based equality and concise syntax.
+
+### Benefits
+- **Immutable by default**: `with` expressions for copying
+- **Value equality**: Compare by value, not reference
+- **Deconstruction**: Built-in support
+- **Concise syntax**: Positional records
+
+## Pattern Matching
+
+Powerful feature for testing and extracting data from objects.
+
+### Types of Patterns
+- **Type patterns**: `obj is string s`
+- **Property patterns**: `person is { Age: > 18 }`
+- **Positional patterns**: `point is (0, 0)`
+- **List patterns**: `array is [1, 2, ..]`
+
+## When to Use
+
+- **Records**: DTOs, value objects, immutable data
+- **Pattern Matching**: Complex conditionals, state machines, parsing",
+                CodeExample = @"// Record definition (concise)
+public record Person(string Name, int Age, string Email);
+
+// Equivalent to a class with:
+// - Public properties
+// - Constructor
+// - Equals/GetHashCode based on values
+// - Deconstruction
+// - ToString() override
+
+// Value-based equality
+var person1 = new Person(""John"", 30, ""john@email.com"");
+var person2 = new Person(""John"", 30, ""john@email.com"");
+
+Console.WriteLine(person1 == person2); // True! (value equality)
+
+// Immutability with 'with' expressions
+var olderPerson = person1 with { Age = 31 };
+// person1 unchanged, olderPerson is new instance
+
+// Deconstruction
+var (name, age, email) = person1;
+
+// Record with body
+public record Customer(string Id, string Name)
+{
+    public bool IsVip { get; init; }
+    public List<Order> Orders { get; init; } = new();
+
+    public decimal TotalSpent => Orders.Sum(o => o.Amount);
+}
+
+// Pattern matching - Type patterns
+object obj = ""Hello"";
+
+if (obj is string s)
+{
+    Console.WriteLine($""Length: {s.Length}"");
+}
+
+// Switch expressions
+string GetDiscount(Customer customer) => customer switch
+{
+    { IsVip: true, TotalSpent: > 10000 } => ""20% off"",
+    { IsVip: true } => ""15% off"",
+    { TotalSpent: > 5000 } => ""10% off"",
+    { TotalSpent: > 1000 } => ""5% off"",
+    _ => ""No discount""
+};
+
+// Property patterns
+bool IsAdultFromUSA(Person person, string country) =>
+    person is { Age: >= 18 } && country is ""USA"";
+
+// Positional patterns with records
+record Point(int X, int Y);
+
+string Classify(Point point) => point switch
+{
+    (0, 0) => ""Origin"",
+    (var x, 0) => $""On X-axis at {x}"",
+    (0, var y) => $""On Y-axis at {y}"",
+    (var x, var y) when x == y => ""On diagonal"",
+    _ => ""Somewhere else""
+};
+
+// List patterns (C# 11+)
+int[] numbers = { 1, 2, 3, 4, 5 };
+
+string DescribeArray(int[] arr) => arr switch
+{
+    [] => ""Empty"",
+    [1] => ""Single element: 1"",
+    [1, 2] => ""Starts with 1, 2"",
+    [1, .., 5] => ""Starts with 1, ends with 5"",
+    [.., var last] => $""Last element: {last}"",
+    _ => ""Other""
+};
+
+// Complex pattern matching
+record OrderRequest(string ProductId, int Quantity, decimal UnitPrice);
+
+(bool IsValid, string Error) ValidateOrder(OrderRequest order) => order switch
+{
+    { Quantity: <= 0 }
+        => (false, ""Quantity must be positive""),
+    { UnitPrice: <= 0 }
+        => (false, ""Price must be positive""),
+    { Quantity: > 1000 }
+        => (false, ""Quantity exceeds maximum""),
+    { ProductId: null or """" }
+        => (false, ""Product ID required""),
+    _
+        => (true, string.Empty)
+};
+
+// State machine with pattern matching
+record State;
+record Idle : State;
+record Processing : State;
+record Completed : State;
+record Failed(string Error) : State;
+
+string GetStatusMessage(State state) => state switch
+{
+    Idle => ""Ready to start"",
+    Processing => ""Working..."",
+    Completed => ""Done!"",
+    Failed { Error: var err } => $""Error: {err}"",
+    _ => ""Unknown state""
+};
+
+// Real-world example: API response handling
+record ApiResponse(int StatusCode, string Body);
+
+async Task<T> HandleResponse<T>(ApiResponse response) => response switch
+{
+    { StatusCode: 200, Body: var body }
+        => JsonSerializer.Deserialize<T>(body),
+    { StatusCode: 404 }
+        => throw new NotFoundException(),
+    { StatusCode: >= 400 and < 500 }
+        => throw new BadRequestException(response.Body),
+    { StatusCode: >= 500 }
+        => throw new ServerErrorException(response.Body),
+    _
+        => throw new UnexpectedResponseException()
+};",
+                Tags = new() { "Records", "Pattern Matching", "Modern C#", "Immutability" }
             }
         };
     }
