@@ -59,8 +59,9 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Error applying migrations: {ex.Message}");
-        // Fallback to EnsureCreated for initial setup (optional)
-        // db.Database.EnsureCreated();
+        // Fallback to EnsureCreated for initial setup
+        Console.WriteLine("Falling back to EnsureCreated...");
+        db.Database.EnsureCreated();
     }
 }
 
