@@ -29,7 +29,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Configure CORS for Angular - Support both local and production
 var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
-    ?? new[] { "http://localhost:4200" };
+    ?? new[] {
+        "http://localhost:4200",
+        "https://preparation-pi.vercel.app"
+    };
 
 builder.Services.AddCors(options =>
 {
