@@ -202,3 +202,24 @@ public class DesignPatternTopic
     public List<string> Tags { get; set; } = new();
     public bool IsFavorite { get; set; }
 }
+
+public class EntityFrameworkTopic
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Difficulty { get; set; } = string.Empty;
+    public string Status { get; set; } = "NotStarted";
+    public int ConfidenceLevel { get; set; }
+    public string? Notes { get; set; }
+    public string? KeyConcepts { get; set; }
+    public string? Lesson { get; set; } // Detailed lesson content
+    public string? CodeExample { get; set; }
+    public string? ProblemScenario { get; set; }
+    public string? Resources { get; set; }
+    public string? EFVersion { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastReviewedAt { get; set; }
+    public List<string> Tags { get; set; } = new();
+    public bool IsFavorite { get; set; }
+}

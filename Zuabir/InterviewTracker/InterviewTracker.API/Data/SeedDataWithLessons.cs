@@ -9269,4 +9269,1261 @@ public class OrderFunction
             }
         };
     }
+
+    public static List<EntityFrameworkTopic> GetEntityFrameworkTopics()
+    {
+        return new List<EntityFrameworkTopic>
+        {
+            // Beginner Level
+            new() {
+                Title = "What is Entity Framework Core?",
+                Category = "Fundamentals",
+                Difficulty = "Easy",
+                EFVersion = "6.0+",
+                KeyConcepts = "ORM, DbContext, DbSet, Database-First vs Code-First",
+                Lesson = @"# What is Entity Framework Core?
+
+## Definition
+Entity Framework Core (EF Core) is a lightweight, extensible, open-source Object-Relational Mapper (ORM) for .NET. It enables developers to work with databases using .NET objects, eliminating the need for most data-access code.
+
+## Key Features
+- **Code-First**: Define your model using C# classes
+- **Database-First**: Generate models from existing database
+- **LINQ Support**: Query databases using C# LINQ
+- **Change Tracking**: Automatically tracks changes to entities
+- **Migrations**: Version control for your database schema
+
+## Core Components
+
+### DbContext
+The primary class for interacting with the database. It represents a session with the database and can be used to query and save instances of entities.
+
+### DbSet<T>
+Represents a collection of entities in the database. Used to perform CRUD operations.
+
+## Real-World Use Case
+Imagine building an e-commerce application. Instead of writing raw SQL queries, EF Core allows you to:
+- Define a Product class
+- Use LINQ to query products
+- Let EF Core handle SQL generation and database interaction",
+                CodeExample = @"// Define your entity
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+
+// Define your DbContext
+public class AppDbContext : DbContext
+{
+    public DbSet<Product> Products { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder options)
+    {
+        options.UseSqlServer(""connection-string"");
+    }
+}
+
+// Use EF Core
+using (var context = new AppDbContext())
+{
+    // Add a product
+    context.Products.Add(new Product { Name = ""Laptop"", Price = 999 });
+    await context.SaveChangesAsync();
+
+    // Query products
+    var products = await context.Products.Where(p => p.Price > 500).ToListAsync();
+}",
+                ProblemScenario = "You need to build a product catalog for an online store. Without EF Core, you'd write hundreds of lines of SQL and ADO.NET code. With EF Core, you can focus on business logic while EF handles database operations.",
+                Tags = new() { "ORM", "DbContext", "Introduction" }
+            },
+
+            new() {
+                Title = "Configuring DbContext",
+                Category = "Fundamentals",
+                Difficulty = "Easy",
+                EFVersion = "6.0+",
+                KeyConcepts = "Connection strings, Dependency Injection, DbContextOptions",
+                Lesson = @"# Configuring DbContext
+
+## Configuration Methods
+
+### 1. OnConfiguring (Not Recommended for Production)
+Override OnConfiguring in your DbContext for simple scenarios or testing.
+
+### 2. Dependency Injection (Recommended)
+Configure DbContext in your application startup using DI container.
+
+## Connection Strings
+Store connection strings in appsettings.json for security and flexibility.
+
+## Best Practices
+- Use DI for testability
+- Never hardcode connection strings
+- Use different configurations for dev/staging/production
+- Enable sensitive data logging only in development",
+                CodeExample = @"// appsettings.json
+{
+  ""ConnectionStrings"": {
+    ""DefaultConnection"": ""Server=localhost;Database=MyDb;User=sa;Password=***;""
+  }
+}
+
+// Program.cs (ASP.NET Core)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString(""DefaultConnection"")));
+
+// DbContext
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<Product> Products { get; set; }
+}
+
+// Usage in Controller
+public class ProductsController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public ProductsController(AppDbContext context)
+    {
+        _context = context;
+    }
+}",
+                ProblemScenario = "Your application needs to connect to different databases in dev, staging, and production. Proper DbContext configuration allows you to manage these environments without code changes.",
+                Tags = new() { "Configuration", "DI", "Connection String" }
+            },
+
+            new() {
+                Title = "CRUD Operations",
+                Category = "Fundamentals",
+                Difficulty = "Easy",
+                EFVersion = "6.0+",
+                KeyConcepts = "Add, Update, Delete, Find, SaveChanges",
+                Lesson = @"# CRUD Operations in EF Core
+
+## Create (Add)
+Use `Add()` or `AddRange()` to add entities to the context, then call `SaveChanges()`.
+
+## Read (Query)
+Use LINQ queries on DbSet to retrieve data.
+
+## Update
+Retrieve entity, modify properties, call SaveChanges(). EF tracks changes automatically.
+
+## Delete
+Use `Remove()` or `RemoveRange()` followed by SaveChanges().
+
+## SaveChanges vs SaveChangesAsync
+- `SaveChanges()`: Synchronous, blocks thread
+- `SaveChangesAsync()`: Asynchronous, recommended for scalability
+
+## Important Concepts
+- **Change Tracking**: EF tracks entity state (Added, Modified, Deleted)
+- **Unit of Work**: SaveChanges commits all changes in a transaction",
+                CodeExample = @"// CREATE
+var product = new Product { Name = ""Mouse"", Price = 25 };
+context.Products.Add(product);
+await context.SaveChangesAsync();
+
+// READ
+var product = await context.Products.FindAsync(1); // By primary key
+var expensiveProducts = await context.Products
+    .Where(p => p.Price > 100)
+    .ToListAsync();
+
+// UPDATE
+var product = await context.Products.FindAsync(1);
+product.Price = 30; // EF tracks this change
+await context.SaveChangesAsync();
+
+// DELETE
+var product = await context.Products.FindAsync(1);
+context.Products.Remove(product);
+await context.SaveChangesAsync();
+
+// BULK OPERATIONS
+context.Products.AddRange(new[] { product1, product2 });
+context.Products.RemoveRange(productsToDelete);
+await context.SaveChangesAsync();",
+                ProblemScenario = "You're building an inventory management system. You need to add new products, update stock levels, retrieve products by category, and remove discontinued items.",
+                Tags = new() { "CRUD", "SaveChanges", "Tracking" }
+            },
+
+            // Intermediate Level
+            new() {
+                Title = "Relationships and Navigation Properties",
+                Category = "Relationships",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "One-to-Many, Many-to-Many, Foreign Keys, Navigation Properties",
+                Lesson = @"# Relationships in EF Core
+
+## Types of Relationships
+
+### One-to-Many
+Most common relationship. One entity relates to multiple entities.
+Example: One Category has many Products.
+
+### One-to-One
+Each entity relates to exactly one other entity.
+Example: One User has one UserProfile.
+
+### Many-to-Many
+Entities on both sides can relate to multiple entities.
+Example: Students and Courses (requires join table).
+
+## Navigation Properties
+Properties that reference related entities.
+
+### Collection Navigation Property
+For ""many"" side: `ICollection<T>` or `List<T>`
+
+### Reference Navigation Property
+For ""one"" side: Single entity reference
+
+## Foreign Keys
+EF Core can infer foreign keys by convention or you can specify explicitly.",
+                CodeExample = @"// One-to-Many: Category -> Products
+public class Category
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    // Collection navigation property
+    public ICollection<Product> Products { get; set; }
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    // Foreign key
+    public int CategoryId { get; set; }
+
+    // Reference navigation property
+    public Category Category { get; set; }
+}
+
+// Many-to-Many (EF Core 5+)
+public class Student
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public ICollection<Course> Courses { get; set; }
+}
+
+public class Course
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public ICollection<Student> Students { get; set; }
+}
+
+// Query with relationships
+var category = await context.Categories
+    .Include(c => c.Products)
+    .FirstOrDefaultAsync(c => c.Id == 1);",
+                ProblemScenario = "You're building an e-learning platform. Students enroll in multiple courses, and courses have multiple students. You need to efficiently query students with their enrolled courses.",
+                Tags = new() { "Relationships", "Navigation", "Foreign Keys" }
+            },
+
+            new() {
+                Title = "Lazy Loading vs Eager Loading vs Explicit Loading",
+                Category = "Querying",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "Include, ThenInclude, Load, N+1 Problem",
+                Lesson = @"# Loading Strategies in EF Core
+
+## Eager Loading
+Load related data as part of initial query using `Include()` and `ThenInclude()`.
+**When to Use**: When you know you'll need related data.
+
+## Lazy Loading
+Related data is loaded automatically when navigation property is accessed.
+**When to Use**: Rarely in web apps (can cause N+1 problem).
+
+## Explicit Loading
+Manually load related data when needed using `Load()`.
+**When to Use**: When you sometimes need related data.
+
+## The N+1 Problem
+Without eager loading, accessing navigation properties in a loop causes N+1 database queries.
+Example: Loading 100 orders, then accessing Order.Customer for each = 101 queries!
+
+## Best Practices
+- Use eager loading for known relationships
+- Avoid lazy loading in web applications
+- Project only needed fields with Select()",
+                CodeExample = @"// EAGER LOADING (Best for known relationships)
+var orders = await context.Orders
+    .Include(o => o.Customer)
+    .Include(o => o.OrderItems)
+        .ThenInclude(oi => oi.Product)
+    .ToListAsync();
+
+// EXPLICIT LOADING
+var order = await context.Orders.FindAsync(1);
+await context.Entry(order).Collection(o => o.OrderItems).LoadAsync();
+
+// LAZY LOADING (requires lazy loading proxies)
+// Install: Microsoft.EntityFrameworkCore.Proxies
+// Enable in DbContext:
+// options.UseLazyLoadingProxies()
+
+public class Order
+{
+    public int Id { get; set; }
+    public virtual Customer Customer { get; set; } // virtual enables lazy loading
+}
+
+// PROJECTION (Best for performance)
+var orderSummaries = await context.Orders
+    .Select(o => new OrderSummaryDto
+    {
+        OrderId = o.Id,
+        CustomerName = o.Customer.Name,
+        TotalItems = o.OrderItems.Count
+    })
+    .ToListAsync();
+
+// BAD: N+1 Problem
+var orders = await context.Orders.ToListAsync(); // 1 query
+foreach (var order in orders)
+{
+    var customer = order.Customer.Name; // N queries (if lazy loading)
+}",
+                ProblemScenario = "Your e-commerce dashboard displays orders with customer names and item counts. Without proper loading strategy, displaying 100 orders could result in 200+ database queries, killing performance.",
+                Tags = new() { "Include", "Performance", "N+1 Problem" }
+            },
+
+            new() {
+                Title = "Migrations",
+                Category = "Migrations",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "Add-Migration, Update-Database, Code-First",
+                Lesson = @"# EF Core Migrations
+
+## What are Migrations?
+Migrations provide a way to incrementally update the database schema to keep it in sync with your application's data model.
+
+## Migration Workflow
+1. Modify your entity classes
+2. Create a migration (generates code)
+3. Review migration code
+4. Apply migration to database
+
+## Common Commands
+
+### .NET CLI
+- `dotnet ef migrations add InitialCreate`
+- `dotnet ef database update`
+- `dotnet ef migrations remove`
+- `dotnet ef database update LastGoodMigration` (rollback)
+
+### Package Manager Console
+- `Add-Migration InitialCreate`
+- `Update-Database`
+- `Remove-Migration`
+
+## Best Practices
+- Name migrations descriptively (AddProductTable, AddPriceToProduct)
+- Review generated SQL before applying
+- Never modify applied migrations
+- Use migrations in all environments (dev, staging, prod)
+- Keep migrations in source control",
+                CodeExample = @"// 1. Create entities
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+
+// 2. Create migration
+// dotnet ef migrations add AddProductTable
+
+// Generated migration Up method:
+public partial class AddProductTable : Migration
+{
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.CreateTable(
+            name: ""Products"",
+            columns: table => new
+            {
+                Id = table.Column<int>(nullable: false)
+                    .Annotation(""SqlServer:Identity"", ""1, 1""),
+                Name = table.Column<string>(nullable: true),
+                Price = table.Column<decimal>(nullable: false)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey(""PK_Products"", x => x.Id);
+            });
+    }
+}
+
+// 3. Apply migration
+// dotnet ef database update
+
+// 4. Add new property
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public string Description { get; set; } // NEW
+}
+
+// 5. Create new migration
+// dotnet ef migrations add AddDescriptionToProduct",
+                ProblemScenario = "Your app is in production. You need to add a new 'Category' field to products without losing existing data or taking the app offline. Migrations allow safe, versioned schema changes.",
+                Tags = new() { "Migrations", "Schema", "Code-First" }
+            },
+
+            // Advanced Level
+            new() {
+                Title = "Advanced LINQ Queries and Projections",
+                Category = "Querying",
+                Difficulty = "Hard",
+                EFVersion = "6.0+",
+                KeyConcepts = "GroupBy, Aggregations, Subqueries, Window Functions",
+                Lesson = @"# Advanced Querying in EF Core
+
+## Complex LINQ Queries
+EF Core translates LINQ to SQL. Understanding what translates efficiently is crucial.
+
+## Projections
+Select only needed data to reduce database load and memory usage.
+
+## Aggregations
+Use Sum, Count, Average, Max, Min for analytical queries.
+
+## GroupBy
+Group data for reporting and analytics.
+
+## Window Functions (EF Core 6+)
+Perform calculations across rows related to current row.
+
+## Subqueries
+Queries within queries for complex filtering.
+
+## Performance Tips
+- Use AsNoTracking() for read-only queries
+- Project to DTOs instead of loading full entities
+- Use compiled queries for frequently executed queries",
+                CodeExample = @"// PROJECTION to DTO
+var productSummaries = await context.Products
+    .Select(p => new ProductSummaryDto
+    {
+        Id = p.Id,
+        Name = p.Name,
+        CategoryName = p.Category.Name,
+        OrderCount = p.OrderItems.Count
+    })
+    .ToListAsync();
+
+// GROUPBY for reporting
+var salesByCategory = await context.OrderItems
+    .GroupBy(oi => oi.Product.Category.Name)
+    .Select(g => new
+    {
+        Category = g.Key,
+        TotalSales = g.Sum(oi => oi.Quantity * oi.Price),
+        OrderCount = g.Count()
+    })
+    .ToListAsync();
+
+// WINDOW FUNCTIONS (EF Core 6+)
+var productsWithRank = await context.Products
+    .Select(p => new
+    {
+        p.Name,
+        p.Price,
+        Rank = EF.Functions.RowNumber(
+            EF.Functions.OrderBy(p.Price)
+        )
+    })
+    .ToListAsync();
+
+// SUBQUERY
+var topCategories = await context.Categories
+    .Where(c => c.Products.Any(p => p.Price > 100))
+    .Select(c => new
+    {
+        c.Name,
+        ExpensiveProductCount = c.Products.Count(p => p.Price > 100)
+    })
+    .ToListAsync();
+
+// ASNOTRACKING for read-only
+var products = await context.Products
+    .AsNoTracking()
+    .Where(p => p.Price > 50)
+    .ToListAsync();
+
+// COMPILED QUERIES for repeated queries
+var getActiveProducts = EF.CompileAsyncQuery(
+    (AppDbContext context, int minPrice) =>
+        context.Products.Where(p => p.Price > minPrice));
+
+var products = await getActiveProducts(context, 100);",
+                ProblemScenario = "Your sales dashboard needs to show total revenue by category, top-selling products, and average order value - all from a database with millions of records. Efficient querying is critical.",
+                Tags = new() { "LINQ", "Performance", "Projections" }
+            },
+
+            new() {
+                Title = "Performance Optimization Techniques",
+                Category = "Performance",
+                Difficulty = "Hard",
+                EFVersion = "6.0+",
+                KeyConcepts = "AsNoTracking, Indexes, Batching, Connection Pooling",
+                Lesson = @"# Performance Optimization in EF Core
+
+## 1. AsNoTracking()
+Disable change tracking for read-only queries. Can improve performance by 30-50%.
+
+## 2. Indexes
+Create indexes on frequently queried columns.
+
+## 3. Batching
+EF Core automatically batches multiple commands into single database round-trip.
+
+## 4. Connection Pooling
+Reuse database connections. Enabled by default.
+
+## 5. Compiled Queries
+Pre-compile LINQ queries for 10-30% performance gain on repeated queries.
+
+## 6. Select vs Include
+Project only needed data instead of loading entire entities.
+
+## 7. Split Queries
+For complex includes, split into multiple queries to avoid cartesian explosion.
+
+## 8. Bulk Operations
+Use libraries like EFCore.BulkExtensions for inserting/updating thousands of records.
+
+## Monitoring
+- Use logging to see generated SQL
+- Profile database with SQL Server Profiler
+- Monitor query execution time",
+                CodeExample = @"// 1. AsNoTracking for read-only
+var products = await context.Products
+    .AsNoTracking()
+    .ToListAsync();
+
+// 2. Create Index in OnModelCreating
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity<Product>()
+        .HasIndex(p => p.Name);
+
+    modelBuilder.Entity<Order>()
+        .HasIndex(o => new { o.CustomerId, o.OrderDate });
+}
+
+// 3. Batching (automatic in EF Core 7+)
+var products = new List<Product> { /* ... */ };
+context.Products.AddRange(products);
+await context.SaveChangesAsync(); // All inserted in batches
+
+// 4. Compiled Queries
+private static readonly Func<AppDbContext, int, Task<List<Product>>>
+    _getProductsByCategory = EF.CompileAsyncQuery(
+        (AppDbContext context, int categoryId) =>
+            context.Products.Where(p => p.CategoryId == categoryId).ToList());
+
+var products = await _getProductsByCategory(context, 5);
+
+// 5. Projection vs Include
+// BAD: Loads all product data
+var orders = await context.Orders
+    .Include(o => o.OrderItems)
+        .ThenInclude(oi => oi.Product)
+    .ToListAsync();
+
+// GOOD: Only loads needed fields
+var orders = await context.Orders
+    .Select(o => new OrderDto
+    {
+        OrderId = o.Id,
+        Items = o.OrderItems.Select(oi => new OrderItemDto
+        {
+            ProductName = oi.Product.Name,
+            Quantity = oi.Quantity
+        }).ToList()
+    })
+    .ToListAsync();
+
+// 6. Split Queries (for large includes)
+var blogs = await context.Blogs
+    .Include(b => b.Posts)
+    .Include(b => b.Contributors)
+    .AsSplitQuery() // Prevents cartesian explosion
+    .ToListAsync();
+
+// 7. Enable query logging
+services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString)
+           .LogTo(Console.WriteLine, LogLevel.Information)
+           .EnableSensitiveDataLogging()); // Dev only!",
+                ProblemScenario = "Your application dashboard takes 5 seconds to load because it queries 10 tables with complex joins. Users are complaining. You need to optimize without changing functionality.",
+                Tags = new() { "Performance", "Optimization", "Indexes" }
+            },
+
+            new() {
+                Title = "Global Query Filters",
+                Category = "Advanced Features",
+                Difficulty = "Hard",
+                EFVersion = "6.0+",
+                KeyConcepts = "Soft Delete, Multi-Tenancy, HasQueryFilter",
+                Lesson = @"# Global Query Filters
+
+## What are Global Query Filters?
+Filters automatically applied to all queries for an entity type. Defined once in OnModelCreating.
+
+## Common Use Cases
+
+### 1. Soft Delete
+Instead of deleting records, mark them as deleted. Filter excludes them from all queries.
+
+### 2. Multi-Tenancy
+Automatically filter data by tenant/organization.
+
+### 3. Data Partitioning
+Filter by region, status, etc.
+
+## How It Works
+Define filter in OnModelCreating using HasQueryFilter(). Filter applied to ALL queries unless explicitly ignored.
+
+## Ignoring Filters
+Use `IgnoreQueryFilters()` when you need to see filtered data.",
+                CodeExample = @"// Entity with soft delete
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public bool IsDeleted { get; set; }
+}
+
+// Multi-tenant entity
+public class Order
+{
+    public int Id { get; set; }
+    public string TenantId { get; set; }
+    public DateTime OrderDate { get; set; }
+}
+
+// Configure global filters in DbContext
+public class AppDbContext : DbContext
+{
+    public string CurrentTenantId { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Soft delete filter
+        modelBuilder.Entity<Product>()
+            .HasQueryFilter(p => !p.IsDeleted);
+
+        // Multi-tenancy filter
+        modelBuilder.Entity<Order>()
+            .HasQueryFilter(o => o.TenantId == CurrentTenantId);
+    }
+}
+
+// Usage - filters applied automatically
+var products = await context.Products.ToListAsync();
+// Only non-deleted products returned
+
+var orders = await context.Orders.ToListAsync();
+// Only current tenant's orders returned
+
+// Ignoring filters when needed
+var allProducts = await context.Products
+    .IgnoreQueryFilters()
+    .ToListAsync();
+// Returns all products including deleted
+
+// Soft delete implementation
+var product = await context.Products.FindAsync(1);
+product.IsDeleted = true; // Don't actually delete
+await context.SaveChangesAsync();
+
+// Product now excluded from all queries automatically
+var products = await context.Products.ToListAsync(); // Won't include soft-deleted product",
+                ProblemScenario = "You're building a SaaS application serving 1000+ organizations. Each organization should only see their own data. Without global filters, you'd need to add TenantId checks to every single query.",
+                Tags = new() { "Soft Delete", "Multi-Tenancy", "Security" }
+            },
+
+            new() {
+                Title = "Concurrency Handling",
+                Category = "Advanced Features",
+                Difficulty = "Hard",
+                EFVersion = "6.0+",
+                KeyConcepts = "Concurrency Tokens, Row Version, Optimistic Concurrency",
+                Lesson = @"# Concurrency in EF Core
+
+## The Problem
+Two users modify the same record simultaneously. Without concurrency handling, last write wins, potentially losing data.
+
+## Optimistic Concurrency
+Assume conflicts are rare. Detect conflicts when saving and let user resolve.
+
+## Concurrency Token
+A property that changes each time row is updated. EF checks token before updating.
+
+### RowVersion (SQL Server)
+Special byte[] property automatically managed by database.
+
+### ConcurrencyCheck
+Any property can be marked as concurrency token.
+
+## Conflict Resolution
+When DbUpdateConcurrencyException occurs:
+1. Reload current database values
+2. Show user what changed
+3. Let user decide: overwrite, cancel, or merge
+
+## Pessimistic Concurrency (Locking)
+Lock records during edit. Prevents conflicts but reduces concurrency. Use sparingly.",
+                CodeExample = @"// Using RowVersion (SQL Server)
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; }
+}
+
+// Configure via Fluent API
+modelBuilder.Entity<Product>()
+    .Property(p => p.RowVersion)
+    .IsRowVersion();
+
+// Using any property as concurrency token
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    [ConcurrencyCheck]
+    public DateTime LastModified { get; set; }
+}
+
+// Handling concurrency conflicts
+try
+{
+    var product = await context.Products.FindAsync(1);
+    product.Price = 299;
+    await context.SaveChangesAsync();
+}
+catch (DbUpdateConcurrencyException ex)
+{
+    var entry = ex.Entries.Single();
+    var databaseValues = await entry.GetDatabaseValuesAsync();
+
+    if (databaseValues == null)
+    {
+        // Record was deleted
+        Console.WriteLine(""Product was deleted by another user"");
+    }
+    else
+    {
+        // Record was modified
+        var databaseProduct = (Product)databaseValues.ToObject();
+
+        Console.WriteLine($""Database price: {databaseProduct.Price}"");
+        Console.WriteLine($""Your price: {product.Price}"");
+
+        // Option 1: Overwrite database
+        entry.OriginalValues.SetValues(databaseValues);
+        await context.SaveChangesAsync();
+
+        // Option 2: Refresh your values
+        entry.Reload();
+
+        // Option 3: Show user and let them decide
+        // ... UI logic ...
+    }
+}
+
+// Pessimistic locking (SQL Server)
+using var transaction = await context.Database.BeginTransactionAsync();
+var product = await context.Products
+    .FromSqlRaw(""SELECT * FROM Products WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}"", id)
+    .FirstOrDefaultAsync();
+
+// User now has exclusive lock on this product
+product.Price = 299;
+await context.SaveChangesAsync();
+await transaction.CommitAsync();",
+                ProblemScenario = "In your inventory system, two warehouse managers try to update the same product's stock simultaneously. Without concurrency handling, one update silently overwrites the other, causing inventory discrepancies.",
+                Tags = new() { "Concurrency", "RowVersion", "Conflicts" }
+            },
+
+            new() {
+                Title = "Raw SQL and Stored Procedures",
+                Category = "Advanced Features",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "FromSqlRaw, ExecuteSqlRaw, Stored Procedures, Performance",
+                Lesson = @"# Raw SQL in EF Core
+
+## When to Use Raw SQL
+- Complex queries EF can't translate
+- Performance-critical queries
+- Legacy stored procedures
+- Database-specific features
+
+## FromSqlRaw / FromSqlInterpolated
+Execute raw SELECT queries, return entities.
+
+## ExecuteSqlRaw / ExecuteSqlInterpolated
+Execute INSERT, UPDATE, DELETE, or DDL commands.
+
+## SQL Injection Prevention
+ALWAYS use parameterized queries. Never concatenate user input into SQL strings.
+
+## Stored Procedures
+Call existing stored procedures from EF Core.
+
+## Limitations
+- Can only return entities defined in your model
+- Can't use LINQ on raw SQL results directly (but can compose)",
+                CodeExample = @"// FromSqlRaw - SELECT queries
+var products = await context.Products
+    .FromSqlRaw(""SELECT * FROM Products WHERE Price > {0}"", 100)
+    .ToListAsync();
+
+// FromSqlInterpolated - safer, prevents SQL injection
+decimal minPrice = 100;
+var products = await context.Products
+    .FromSqlInterpolated($""SELECT * FROM Products WHERE Price > {minPrice}"")
+    .ToListAsync();
+
+// Can compose with LINQ
+var filteredProducts = await context.Products
+    .FromSqlRaw(""SELECT * FROM Products WHERE CategoryId = {0}"", categoryId)
+    .Where(p => p.Price > 50) // Composed in SQL
+    .OrderBy(p => p.Name)
+    .ToListAsync();
+
+// ExecuteSqlRaw - non-query commands
+var rowsAffected = await context.Database
+    .ExecuteSqlRawAsync(""UPDATE Products SET Price = Price * 1.1 WHERE CategoryId = {0}"", categoryId);
+
+// ExecuteSqlInterpolated
+await context.Database
+    .ExecuteSqlInterpolatedAsync($""DELETE FROM Products WHERE IsDeleted = {true}"");
+
+// Calling stored procedures
+var products = await context.Products
+    .FromSqlRaw(""EXEC GetProductsByCategory @CategoryId = {0}"", categoryId)
+    .ToListAsync();
+
+// Stored procedure with output parameter
+var categoryIdParam = new SqlParameter
+{
+    ParameterName = ""@CategoryId"",
+    SqlDbType = SqlDbType.Int,
+    Value = 5
+};
+
+var totalParam = new SqlParameter
+{
+    ParameterName = ""@Total"",
+    SqlDbType = SqlDbType.Decimal,
+    Direction = ParameterDirection.Output
+};
+
+await context.Database.ExecuteSqlRawAsync(
+    ""EXEC CalculateCategoryTotal @CategoryId, @Total OUTPUT"",
+    categoryIdParam, totalParam);
+
+var total = (decimal)totalParam.Value;
+
+// WARNING: SQL Injection vulnerability
+string userInput = ""'; DROP TABLE Products--"";
+// NEVER DO THIS:
+var bad = context.Products.FromSqlRaw($""SELECT * FROM Products WHERE Name = '{userInput}'"");
+
+// SAFE: Use parameters
+var safe = context.Products.FromSqlInterpolated($""SELECT * FROM Products WHERE Name = {userInput}"");",
+                ProblemScenario = "Your database has complex reporting stored procedures built by the DBA team over years. You need to integrate these into your EF Core application without rewriting them in LINQ.",
+                Tags = new() { "Raw SQL", "Stored Procedures", "Performance" }
+            },
+
+            new() {
+                Title = "Value Conversions",
+                Category = "Advanced Features",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "HasConversion, Enum to String, JSON columns, Encryption",
+                Lesson = @"# Value Conversions in EF Core
+
+## What are Value Conversions?
+Transform property values when reading from or writing to database.
+
+## Common Use Cases
+1. **Enum to String**: Store enums as strings instead of ints
+2. **JSON Columns**: Store complex objects as JSON
+3. **Encryption**: Encrypt sensitive data
+4. **Custom Types**: Convert between C# types and database types
+5. **Date/Time**: Store UTC, convert to local
+
+## Built-in Conversions
+EF Core provides many built-in conversions.
+
+## Custom Conversions
+Create your own for specific needs.",
+                CodeExample = @"// Enum to String conversion
+public enum ProductStatus
+{
+    Active,
+    Discontinued,
+    OutOfStock
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public ProductStatus Status { get; set; }
+}
+
+// Configure in OnModelCreating
+modelBuilder.Entity<Product>()
+    .Property(p => p.Status)
+    .HasConversion<string>(); // Stored as ""Active"", ""Discontinued"", etc.
+
+// JSON column (EF Core 7+)
+public class Order
+{
+    public int Id { get; set; }
+    public Address ShippingAddress { get; set; } // Complex type
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string ZipCode { get; set; }
+}
+
+modelBuilder.Entity<Order>()
+    .Property(o => o.ShippingAddress)
+    .HasConversion(
+        v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
+        v => JsonSerializer.Deserialize<Address>(v, (JsonSerializerOptions)null));
+
+// Encryption conversion
+public class User
+{
+    public int Id { get; set; }
+    public string Email { get; set; }
+    public string SocialSecurityNumber { get; set; }
+}
+
+modelBuilder.Entity<User>()
+    .Property(u => u.SocialSecurityNumber)
+    .HasConversion(
+        v => Encrypt(v),
+        v => Decrypt(v));
+
+// UTC DateTime conversion
+modelBuilder.Entity<Order>()
+    .Property(o => o.CreatedAt)
+    .HasConversion(
+        v => v.ToUniversalTime(),
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+// List to comma-separated string
+public class Product
+{
+    public int Id { get; set; }
+    public List<string> Tags { get; set; }
+}
+
+modelBuilder.Entity<Product>()
+    .Property(p => p.Tags)
+    .HasConversion(
+        v => string.Join(',', v),
+        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+
+// Value object conversion
+public class Money
+{
+    public decimal Amount { get; }
+    public string Currency { get; }
+
+    public Money(decimal amount, string currency)
+    {
+        Amount = amount;
+        Currency = currency;
+    }
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public Money Price { get; set; }
+}
+
+modelBuilder.Entity<Product>()
+    .Property(p => p.Price)
+    .HasConversion(
+        v => $""{v.Amount}|{v.Currency}"",
+        v => new Money(
+            decimal.Parse(v.Split('|')[0]),
+            v.Split('|')[1]));",
+                ProblemScenario = "Your application stores user preferences as a C# object, but the database needs them as JSON. You also need to encrypt Social Security Numbers at rest. Value conversions handle these automatically.",
+                Tags = new() { "Conversions", "JSON", "Encryption" }
+            },
+
+            new() {
+                Title = "Database Transactions",
+                Category = "Advanced Features",
+                Difficulty = "Medium",
+                EFVersion = "6.0+",
+                KeyConcepts = "BeginTransaction, Rollback, ACID, Isolation Levels",
+                Lesson = @"# Transactions in EF Core
+
+## What is a Transaction?
+A unit of work that either completely succeeds or completely fails. Ensures data consistency.
+
+## ACID Properties
+- **Atomicity**: All or nothing
+- **Consistency**: Data remains valid
+- **Isolation**: Concurrent transactions don't interfere
+- **Durability**: Committed data persists
+
+## Default Behavior
+SaveChanges() automatically wraps changes in a transaction.
+
+## Manual Transactions
+Use when you need to:
+- Span multiple SaveChanges calls
+- Include raw SQL commands
+- Control isolation level
+- Coordinate with external resources
+
+## Isolation Levels
+- **ReadUncommitted**: Fastest, but can read uncommitted changes (dirty reads)
+- **ReadCommitted**: Default, prevents dirty reads
+- **RepeatableRead**: Prevents non-repeatable reads
+- **Serializable**: Strongest isolation, slowest
+- **Snapshot**: SQL Server specific, good balance",
+                CodeExample = @"// Default: SaveChanges uses implicit transaction
+var order = new Order { /* ... */ };
+context.Orders.Add(order);
+await context.SaveChangesAsync(); // Atomic transaction
+
+// Manual transaction spanning multiple SaveChanges
+using var transaction = await context.Database.BeginTransactionAsync();
+try
+{
+    // Create order
+    var order = new Order { CustomerId = 1, Total = 100 };
+    context.Orders.Add(order);
+    await context.SaveChangesAsync();
+
+    // Update inventory
+    var product = await context.Products.FindAsync(1);
+    product.Stock -= 5;
+    await context.SaveChangesAsync();
+
+    // Send email (external operation)
+    await emailService.SendOrderConfirmationAsync(order);
+
+    // All succeeded, commit
+    await transaction.CommitAsync();
+}
+catch (Exception)
+{
+    // Something failed, rollback everything
+    await transaction.RollbackAsync();
+    throw;
+}
+
+// Mixing EF and raw SQL in transaction
+using var transaction = await context.Database.BeginTransactionAsync();
+try
+{
+    // EF operation
+    var order = new Order { /* ... */ };
+    context.Orders.Add(order);
+    await context.SaveChangesAsync();
+
+    // Raw SQL operation
+    await context.Database.ExecuteSqlRawAsync(
+        ""UPDATE Inventory SET Stock = Stock - {0} WHERE ProductId = {1}"",
+        quantity, productId);
+
+    await transaction.CommitAsync();
+}
+catch
+{
+    await transaction.RollbackAsync();
+    throw;
+}
+
+// Setting isolation level
+using var transaction = await context.Database.BeginTransactionAsync(
+    IsolationLevel.ReadCommitted);
+// ... operations ...
+await transaction.CommitAsync();
+
+// Using transaction with different DbContext instances
+var strategy = context.Database.CreateExecutionStrategy();
+await strategy.ExecuteAsync(async () =>
+{
+    using var transaction = await context.Database.BeginTransactionAsync();
+
+    // Use same transaction in different context
+    using var context2 = new AppDbContext(options);
+    await context2.Database.UseTransactionAsync(transaction.GetDbTransaction());
+
+    // Operations on both contexts
+    context.Orders.Add(new Order());
+    await context.SaveChangesAsync();
+
+    context2.Products.Add(new Product());
+    await context2.SaveChangesAsync();
+
+    await transaction.CommitAsync();
+});",
+                ProblemScenario = "Customer places an order. You need to: 1) Create order record, 2) Decrease product inventory, 3) Charge credit card, 4) Send confirmation email. If ANY step fails, everything must rollback to prevent inconsistent data.",
+                Tags = new() { "Transactions", "ACID", "Consistency" }
+            },
+
+            new() {
+                Title = "Owned Entity Types and Table Splitting",
+                Category = "Advanced Features",
+                Difficulty = "Hard",
+                EFVersion = "6.0+",
+                KeyConcepts = "OwnsOne, Value Objects, Table Splitting, DDD",
+                Lesson = @"# Owned Entity Types in EF Core
+
+## What are Owned Types?
+Entity types that don't have their own identity and only exist as part of another entity. Based on Domain-Driven Design (DDD) value objects.
+
+## When to Use
+- Address, Money, DateRange (value objects)
+- Data that doesn't make sense without parent entity
+- Encapsulating related properties
+
+## Configuration
+Use `OwnsOne()` or `OwnsMany()` in OnModelCreating.
+
+## Table Splitting
+Multiple entity types mapped to same table.
+
+## Navigation vs Owned Types
+- **Navigation**: Separate entity with its own identity and table
+- **Owned**: No separate identity, can share parent's table",
+                CodeExample = @"// Value object
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string ZipCode { get; set; }
+}
+
+// Entity with owned types
+public class Customer
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    // Owned type - no separate identity
+    public Address BillingAddress { get; set; }
+    public Address ShippingAddress { get; set; }
+}
+
+// Configure owned types
+modelBuilder.Entity<Customer>()
+    .OwnsOne(c => c.BillingAddress, address =>
+    {
+        address.Property(a => a.Street).HasColumnName(""BillingStreet"");
+        address.Property(a => a.City).HasColumnName(""BillingCity"");
+        address.Property(a => a.State).HasColumnName(""BillingState"");
+        address.Property(a => a.ZipCode).HasColumnName(""BillingZip"");
+    });
+
+modelBuilder.Entity<Customer>()
+    .OwnsOne(c => c.ShippingAddress, address =>
+    {
+        address.Property(a => a.Street).HasColumnName(""ShippingStreet"");
+        address.Property(a => a.City).HasColumnName(""ShippingCity"");
+        address.Property(a => a.State).HasColumnName(""ShippingState"");
+        address.Property(a => a.ZipCode).HasColumnName(""ShippingZip"");
+    });
+
+// Results in single table:
+// Customers: Id, Name, BillingStreet, BillingCity, ..., ShippingStreet, ShippingCity, ...
+
+// OwnsMany - collection of owned types
+public class Order
+{
+    public int Id { get; set; }
+    public List<LineItem> LineItems { get; set; }
+}
+
+public class LineItem // Owned type
+{
+    public string ProductName { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+modelBuilder.Entity<Order>()
+    .OwnsMany(o => o.LineItems, li =>
+    {
+        li.WithOwner().HasForeignKey(""OrderId"");
+        li.Property<int>(""Id"");
+        li.HasKey(""Id"");
+    });
+
+// Table Splitting - different entities, same table
+public class Order
+{
+    public int Id { get; set; }
+    public DateTime OrderDate { get; set; }
+    public OrderDetails Details { get; set; }
+}
+
+public class OrderDetails
+{
+    public int Id { get; set; }
+    public string ShippingMethod { get; set; }
+    public string Notes { get; set; }
+}
+
+modelBuilder.Entity<Order>()
+    .HasOne(o => o.Details)
+    .WithOne()
+    .HasForeignKey<OrderDetails>(d => d.Id);
+
+modelBuilder.Entity<Order>().ToTable(""Orders"");
+modelBuilder.Entity<OrderDetails>().ToTable(""Orders""); // Same table!
+
+// Querying owned types
+var customer = await context.Customers
+    .Where(c => c.BillingAddress.City == ""Seattle"")
+    .FirstOrDefaultAsync();",
+                ProblemScenario = "You're building an e-commerce system. Every customer has billing and shipping addresses. These addresses don't exist independently - they're always part of a customer. Owned types prevent creating unnecessary Address table and foreign keys.",
+                Tags = new() { "Owned Types", "DDD", "Value Objects" }
+            }
+        };
+    }
 }

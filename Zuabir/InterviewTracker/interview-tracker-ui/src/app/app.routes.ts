@@ -49,5 +49,9 @@ export const routes: Routes = [
   {
     path: 'design-patterns',
     loadComponent: () => import('./pages/design-patterns/design-patterns.component').then(m => m.DesignPatternsComponent)
+  },
+  {
+    path: 'entity-framework',
+    loadComponent: () => import('./pages/entity-framework/entity-framework.component').then(m => m.EntityFrameworkComponent)
   }
 ];

@@ -248,6 +248,26 @@ export interface DesignPatternTopic {
   isFavorite: boolean;
 }
 
+export interface EntityFrameworkTopic {
+  id?: number;
+  title: string;
+  category: string;
+  difficulty: string;
+  status: string;
+  confidenceLevel: number;
+  notes?: string;
+  keyConcepts?: string;
+  lesson?: string;
+  codeExample?: string;
+  problemScenario?: string;
+  resources?: string;
+  efVersion?: string;
+  createdAt?: string;
+  lastReviewedAt?: string;
+  tags: string[];
+  isFavorite: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private http: HttpClient) {}
@@ -563,5 +583,33 @@ export class ApiService {
 
   seedDesignPatternTopics(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${API_URL}/designpattern/seed`, {});
+  }
+
+  // Entity Framework Topics
+  getEntityFrameworkTopics(filters?: { category?: string; status?: string }): Observable<EntityFrameworkTopic[]> {
+    const params = new URLSearchParams();
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.status) params.set('status', filters.status);
+    return this.http.get<EntityFrameworkTopic[]>(`${API_URL}/entityframework?${params.toString()}`);
+  }
+
+  createEntityFrameworkTopic(topic: EntityFrameworkTopic): Observable<EntityFrameworkTopic> {
+    return this.http.post<EntityFrameworkTopic>(`${API_URL}/entityframework`, topic);
+  }
+
+  updateEntityFrameworkTopic(id: number, topic: EntityFrameworkTopic): Observable<void> {
+    return this.http.put<void>(`${API_URL}/entityframework/${id}`, topic);
+  }
+
+  deleteEntityFrameworkTopic(id: number): Observable<void> {
+    return this.http.delete<void>(`${API_URL}/entityframework/${id}`);
+  }
+
+  toggleEntityFrameworkFavorite(id: number): Observable<EntityFrameworkTopic> {
+    return this.http.post<EntityFrameworkTopic>(`${API_URL}/entityframework/${id}/favorite`, {});
+  }
+
+  seedEntityFrameworkTopics(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${API_URL}/entityframework/seed`, {});
   }
 }

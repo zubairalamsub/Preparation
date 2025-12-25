@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<AspNetCoreTopic> AspNetCoreTopics => Set<AspNetCoreTopic>();
     public DbSet<SqlServerTopic> SqlServerTopics => Set<SqlServerTopic>();
     public DbSet<DesignPatternTopic> DesignPatternTopics => Set<DesignPatternTopic>();
+    public DbSet<EntityFrameworkTopic> EntityFrameworkTopics => Set<EntityFrameworkTopic>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +78,13 @@ public class AppDbContext : DbContext
             );
 
         modelBuilder.Entity<DesignPatternTopic>()
+            .Property(p => p.Tags)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
+            );
+
+        modelBuilder.Entity<EntityFrameworkTopic>()
             .Property(p => p.Tags)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),

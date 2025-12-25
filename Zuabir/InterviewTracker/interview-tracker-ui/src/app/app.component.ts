@@ -22,6 +22,7 @@ import { CommonModule } from '@angular/common';
           <a routerLink="/sqlserver" routerLinkActive="active" class="nav-link" (click)="closeMenu()">🗄️ SQL</a>
           <a routerLink="/oop" routerLinkActive="active" class="nav-link" (click)="closeMenu()">🎯 OOP</a>
           <a routerLink="/design-patterns" routerLinkActive="active" class="nav-link" (click)="closeMenu()">🔷 Patterns</a>
+          <a routerLink="/entity-framework" routerLinkActive="active" class="nav-link" (click)="closeMenu()">🗃️ EF Core</a>
           <a routerLink="/azure" routerLinkActive="active" class="nav-link" (click)="closeMenu()">☁️ Azure</a>
           <a routerLink="/interviews" routerLinkActive="active" class="nav-link" (click)="closeMenu()">🎤 Interviews</a>
           <a routerLink="/weak-areas" routerLinkActive="active" class="nav-link" (click)="closeMenu()">⚠️ Weak Areas</a>
