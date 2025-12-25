@@ -52,16 +52,45 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        // Apply any pending migrations automatically on startup
-        db.Database.Migrate();
-        Console.WriteLine("Database migrations applied successfully.");
+        // Check if database exists
+        var canConnect = await db.Database.CanConnectAsync();
+
+        if (!canConnect)
+        {
+            Console.WriteLine("Database does not exist. Creating...");
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            // Get pending migrations
+            var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+
+            if (pendingMigrations.Any())
+            {
+                Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
+                await db.Database.MigrateAsync();
+                Console.WriteLine("Migrations applied successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Database is up to date. No migrations to apply.");
+            }
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error applying migrations: {ex.Message}");
-        // Fallback to EnsureCreated for initial setup
-        Console.WriteLine("Falling back to EnsureCreated...");
-        db.Database.EnsureCreated();
+        Console.WriteLine($"Migration error: {ex.Message}");
+        Console.WriteLine("Attempting to ensure database created...");
+        try
+        {
+            await db.Database.EnsureCreatedAsync();
+            Console.WriteLine("Database created successfully.");
+        }
+        catch (Exception ensureEx)
+        {
+            Console.WriteLine($"Error creating database: {ensureEx.Message}");
+            throw;
+        }
     }
 }
 
