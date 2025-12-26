@@ -16,6 +16,44 @@ public class SystemDesignController : ControllerBase
         _context = context;
     }
 
+    // IMPORTANT: Specific routes (like "seed", "categories") must come BEFORE {id} routes
+    [HttpPost("seed")]
+    public async Task<ActionResult> SeedData()
+    {
+        // Clear existing data
+        var existing = await _context.SystemDesignTopics.ToListAsync();
+        if (existing.Any())
+        {
+            _context.SystemDesignTopics.RemoveRange(existing);
+            await _context.SaveChangesAsync();
+        }
+
+        var topics = SeedDataWithLessons.GetSystemDesignTopicsWithLessons();
+        _context.SystemDesignTopics.AddRange(topics);
+        await _context.SaveChangesAsync();
+        return Ok(new { message = $"Seeded {topics.Count} System Design topics with detailed lessons" });
+    }
+
+    [HttpGet("categories")]
+    public async Task<ActionResult<IEnumerable<string>>> GetCategories()
+    {
+        return await _context.SystemDesignTopics
+            .Select(t => t.Category)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
+    }
+
+    [HttpGet("favorites")]
+    public async Task<ActionResult<IEnumerable<SystemDesignTopic>>> GetFavorites()
+    {
+        return await _context.SystemDesignTopics
+            .Where(t => t.IsFavorite)
+            .OrderBy(t => t.Category)
+            .ThenBy(t => t.Title)
+            .ToListAsync();
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SystemDesignTopic>>> GetAll(
         [FromQuery] string? category = null,
@@ -100,16 +138,6 @@ public class SystemDesignController : ControllerBase
         return topic;
     }
 
-    [HttpGet("categories")]
-    public async Task<ActionResult<IEnumerable<string>>> GetCategories()
-    {
-        return await _context.SystemDesignTopics
-            .Select(t => t.Category)
-            .Distinct()
-            .OrderBy(c => c)
-            .ToListAsync();
-    }
-
     [HttpPost("{id}/favorite")]
     public async Task<ActionResult<SystemDesignTopic>> ToggleFavorite(int id)
     {
@@ -119,28 +147,6 @@ public class SystemDesignController : ControllerBase
         topic.IsFavorite = !topic.IsFavorite;
         await _context.SaveChangesAsync();
         return topic;
-    }
-
-    [HttpPost("seed")]
-    public async Task<ActionResult> SeedData()
-    {
-        if (await _context.SystemDesignTopics.AnyAsync())
-            return BadRequest("Data already exists. Clear the database first.");
-
-        var topics = Data.SeedData.GetSystemDesignTopics();
-        _context.SystemDesignTopics.AddRange(topics);
-        await _context.SaveChangesAsync();
-        return Ok(new { message = $"Seeded {topics.Count} System Design topics" });
-    }
-
-    [HttpGet("favorites")]
-    public async Task<ActionResult<IEnumerable<SystemDesignTopic>>> GetFavorites()
-    {
-        return await _context.SystemDesignTopics
-            .Where(t => t.IsFavorite)
-            .OrderBy(t => t.Category)
-            .ThenBy(t => t.Title)
-            .ToListAsync();
     }
 }
 
