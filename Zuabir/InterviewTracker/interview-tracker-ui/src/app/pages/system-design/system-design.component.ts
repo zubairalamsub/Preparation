@@ -104,10 +104,13 @@ import { ApiService, SystemDesignTopic } from '../../services/api.service';
                 </div>
               }
 
-              <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-secondary" style="flex: 1;" (click)="editTopic(topic)">Edit</button>
-                <button class="btn btn-primary" style="flex: 1;" (click)="openReviewModal(topic)">Review</button>
-                <button class="btn btn-danger" style="padding: 0.625rem;" (click)="deleteTopic(topic.id!)">&#128465;</button>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                @if (topic.lesson) {
+                  <button class="btn btn-success" style="flex: 1;" (click)="openLessonModal(topic)">📖 Lesson</button>
+                }
+                <button class="btn btn-secondary" style="flex: 1;" (click)="editTopic(topic)">✏️ Edit</button>
+                <button class="btn btn-primary" style="flex: 1;" (click)="openReviewModal(topic)">📝 Review</button>
+                <button class="btn btn-danger" style="padding: 0.625rem;" (click)="deleteTopic(topic.id!)">🗑️</button>
               </div>
             </div>
           }
@@ -227,16 +230,59 @@ import { ApiService, SystemDesignTopic } from '../../services/api.service';
           </div>
         </div>
       }
+
+      <!-- Lesson Modal -->
+      @if (showLessonModal && lessonTopic) {
+        <div class="modal-backdrop" (click)="closeLessonModal()">
+          <div class="modal lesson-modal" (click)="$event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+              <div>
+                <h2 class="modal-title" style="margin: 0;">{{ lessonTopic.title }}</h2>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                  <span class="badge">{{ lessonTopic.category }}</span>
+                  <span class="badge" [class.badge-solved]="lessonTopic.difficulty === 'Easy'" [class.badge-average]="lessonTopic.difficulty === 'Medium'" [class.badge-pending]="lessonTopic.difficulty === 'Hard'">{{ lessonTopic.difficulty }}</span>
+                </div>
+              </div>
+              <button class="btn btn-secondary" (click)="closeLessonModal()" style="padding: 0.5rem 1rem;">Close</button>
+            </div>
+            <div style="overflow-y: auto; flex: 1; padding: 1rem 0;">
+              <div class="lesson-content" [innerHTML]="formatLesson(lessonTopic.lesson)"></div>
+              @if (lessonTopic.resources) {
+                <div style="margin-top: 2rem;">
+                  <h3 style="color: #8b5cf6; margin-bottom: 1rem;">📚 Resources</h3>
+                  <div style="background: #1e293b; padding: 1rem; border-radius: 8px;">{{ lessonTopic.resources }}</div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
     </div>
-  `
+  `,
+  styles: [`
+    .lesson-content { font-size: 0.95rem; line-height: 1.8; }
+    .lesson-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 1rem; color: #a78bfa; }
+    .lesson-content h2 { font-size: 1.4rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: #c4b5fd; }
+    .lesson-content h3 { font-size: 1.15rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: #ddd6fe; }
+    .lesson-content strong { color: #fbbf24; }
+    .lesson-content ul, .lesson-content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+    .lesson-content li { margin-bottom: 0.5rem; }
+    .lesson-content pre { background: #1e293b; padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+    .lesson-content code { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.875rem; }
+    .lesson-content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    .lesson-content th, .lesson-content td { border: 1px solid #374151; padding: 0.75rem; text-align: left; }
+    .lesson-content th { background: #1e293b; font-weight: 600; }
+  `]
 })
 export class SystemDesignComponent implements OnInit {
   topics: SystemDesignTopic[] = [];
   allTopics: SystemDesignTopic[] = [];
   showModal = false;
   showReviewModal = false;
+  showLessonModal = false;
   editingTopic: SystemDesignTopic | null = null;
   selectedTopic: SystemDesignTopic | null = null;
+  lessonTopic: SystemDesignTopic | null = null;
   showFavoritesOnly = false;
 
   filters = { category: '', status: '' };
@@ -365,5 +411,36 @@ export class SystemDesignComponent implements OnInit {
       this.loadTopics();
       this.closeReviewModal();
     });
+  }
+
+  openLessonModal(topic: SystemDesignTopic) {
+    this.lessonTopic = topic;
+    this.showLessonModal = true;
+  }
+
+  closeLessonModal() {
+    this.showLessonModal = false;
+    this.lessonTopic = null;
+  }
+
+  formatLesson(lesson: string | undefined): string {
+    if (!lesson) return '';
+    return lesson
+      .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+      .replace(/`([^`]+)`/g, '<code style="background: #334155; padding: 0.125rem 0.25rem; border-radius: 4px;">$1</code>')
+      .replace(/^\- (.*$)/gm, '<li>$1</li>')
+      .replace(/\|(.+)\|/g, (match) => {
+        const cells = match.split('|').filter(c => c.trim());
+        const isHeader = lesson.indexOf(match) > 0 && lesson.charAt(lesson.indexOf(match) - 1) === '\n';
+        return '<tr>' + cells.map(c => isHeader ? `<th>${c.trim()}</th>` : `<td>${c.trim()}</td>`).join('') + '</tr>';
+      })
+      .replace(/(<tr>.*<\/tr>)/g, '<table>$1</table>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
   }
 }

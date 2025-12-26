@@ -39,6 +39,8 @@ export interface SystemDesignTopic {
   confidenceLevel: number;
   notes?: string;
   keyConcepts?: string;
+  lesson?: string;
+  diagramUrl?: string;
   resources?: string;
   createdAt?: string;
   lastReviewedAt?: string;
