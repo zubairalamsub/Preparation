@@ -11878,6 +11878,962 @@ A:
 3. Use separate system for analytics",
                 Resources = "https://www.mongodb.com/features/database-sharding-explained",
                 Tags = new() { "Sharding", "Database", "Scalability", "Partitioning" }
+            },
+
+            // Microservices & Message Queues
+            new() {
+                Title = "Microservices Architecture",
+                Category = "Microservices",
+                Difficulty = "Hard",
+                KeyConcepts = "Service Decomposition, Independent Deployment, Bounded Contexts",
+                Lesson = @"# Microservices Architecture
+
+## What are Microservices?
+
+An architectural style where an application is composed of small, independent services that communicate over a network.
+
+## Monolith vs Microservices
+
+### Monolith
+Single codebase, all features in one deployment.
+
+**Pros**:
+- ✅ Simple to develop initially
+- ✅ Easy to test (everything together)
+- ✅ Simple deployment (one artifact)
+- ✅ No network latency
+
+**Cons**:
+- ❌ Tight coupling (change one thing, test everything)
+- ❌ Single tech stack (can't use different languages)
+- ❌ Scaling issues (scale entire app, not just bottleneck)
+- ❌ Long deployment times
+
+### Microservices
+Multiple services, each owned by a team.
+
+**Pros**:
+- ✅ Independent deployment (ship faster)
+- ✅ Technology diversity (use best tool per service)
+- ✅ Team autonomy (small teams own services)
+- ✅ Fault isolation (one service down ≠ entire app down)
+- ✅ Scalability (scale only what needs scaling)
+
+**Cons**:
+- ❌ Complexity (distributed systems are hard)
+- ❌ Network latency (inter-service calls)
+- ❌ Data consistency challenges
+- ❌ Testing is harder (integration tests across services)
+- ❌ Operational overhead (more deployments to manage)
+
+## When to Use Microservices?
+
+### Good Fit:
+- Large teams (50+ engineers)
+- Need independent scaling
+- Different parts have different requirements
+- Need to ship features fast (multiple teams)
+
+### Bad Fit:
+- Small team (< 10 people)
+- Simple application
+- No need for independent scaling
+- Startups (premature optimization)
+
+## Service Decomposition Strategies
+
+### 1. By Business Capability
+Split by what the business does.
+- User Service
+- Order Service
+- Payment Service
+- Inventory Service
+
+### 2. By Subdomain (DDD)
+Based on Domain-Driven Design bounded contexts.
+- Catalog Context
+- Shopping Cart Context
+- Checkout Context
+
+### 3. By Data Ownership
+Each service owns its data, no shared databases.
+
+## Communication Patterns
+
+### Synchronous (Request/Response)
+- **REST APIs**: HTTP/JSON, simple, widely used
+- **gRPC**: Protocol buffers, faster, type-safe
+
+**Use when**: Need immediate response (user waiting)
+
+### Asynchronous (Event-Driven)
+- **Message Queue**: RabbitMQ, SQS
+- **Event Stream**: Kafka
+
+**Use when**: Fire-and-forget, background processing
+
+## Challenges & Solutions
+
+### 1. Data Consistency
+**Problem**: No distributed transactions across services.
+
+**Solutions**:
+- **Saga Pattern**: Sequence of local transactions
+- **Event Sourcing**: Store events, rebuild state
+- **Eventual Consistency**: Accept temporary inconsistency
+
+### 2. Service Discovery
+**Problem**: Services need to find each other dynamically.
+
+**Solutions**:
+- **Client-side**: Eureka, Consul
+- **Server-side**: Kubernetes DNS, AWS ALB
+
+### 3. Distributed Tracing
+**Problem**: Request spans multiple services, hard to debug.
+
+**Solutions**:
+- **Correlation IDs**: Track requests across services
+- **Tools**: Jaeger, Zipkin, OpenTelemetry
+
+### 4. API Gateway
+**Problem**: Clients don't want to call 10 different services.
+
+**Solution**: Single entry point that routes/aggregates requests.
+
+## Real-World Example: Netflix
+
+- **600+ microservices**
+- Each team owns services end-to-end
+- Services communicate via REST and events
+- Chaos engineering (intentionally break services to test resilience)
+
+## Interview Tips
+
+**Q: When would you NOT use microservices?**
+A: Small team, simple app, no scaling needs, startup MVP
+
+**Q: How do you handle failures?**
+A: Circuit breakers, timeouts, retries, fallbacks
+
+**Q: How do you deploy?**
+A: CI/CD pipelines, containers (Docker), orchestration (Kubernetes)",
+                Resources = "https://microservices.io/patterns/microservices.html",
+                Tags = new() { "Microservices", "Architecture", "Distributed Systems" }
+            },
+
+            new() {
+                Title = "Message Queues - Apache Kafka",
+                Category = "Message Queues",
+                Difficulty = "Hard",
+                KeyConcepts = "Topics, Partitions, Consumer Groups, Event Streaming",
+                Lesson = @"# Apache Kafka - Distributed Event Streaming
+
+## What is Kafka?
+
+Distributed event streaming platform for:
+- High-throughput messaging
+- Real-time data pipelines
+- Event sourcing
+
+## Core Concepts
+
+### 1. Topics
+Categories for messages (like database tables).
+Example: `user-events`, `order-events`
+
+### 2. Partitions
+Topics split into partitions for parallelism.
+- Messages in same partition are ordered
+- Different partitions can be consumed in parallel
+
+### 3. Producers
+Send messages to topics.
+
+### 4. Consumers
+Read messages from topics.
+
+### 5. Consumer Groups
+Multiple consumers working together.
+- Each partition consumed by ONE consumer in group
+- Enables parallel processing
+
+## Why Kafka?
+
+### Traditional Message Queue (RabbitMQ, SQS)
+- Message deleted after consumption
+- Point-to-point or pub/sub
+- Low throughput (~10k msg/sec)
+
+### Kafka
+- Messages retained (configurable)
+- Multiple consumers can read same message
+- High throughput (millions msg/sec)
+- Durable (replicated across brokers)
+
+## Use Cases
+
+### 1. Event Sourcing
+Store all events (user actions, state changes).
+
+**Example**: Banking
+- Event: $100 deposited
+- Event: $50 withdrawn
+- Current balance = replay events
+
+### 2. Real-time Analytics
+Process events as they arrive.
+
+**Example**: Uber
+- Driver location updates → Kafka
+- Real-time ETA calculations
+
+### 3. Microservices Communication
+Decouple services via events.
+
+**Example**: E-commerce
+- Order placed → Kafka
+- Inventory service consumes → reduce stock
+- Email service consumes → send confirmation
+
+### 4. Log Aggregation
+Collect logs from all services.
+
+## Kafka Guarantees
+
+### At-least-once
+Message delivered 1+ times (may duplicate).
+- Default behavior
+- Safe but need idempotent consumers
+
+### At-most-once
+Message delivered 0 or 1 time (may lose).
+- Fire-and-forget
+- Fast but data loss possible
+
+### Exactly-once (EOS)
+Message delivered exactly once.
+- Kafka 0.11+ supports this
+- Performance cost
+
+## Partitioning Strategy
+
+### Key-based Partitioning
+Messages with same key → same partition.
+
+**Example**: User events
+```
+Key: user_id
+user123's events → partition 0
+user456's events → partition 2
+```
+
+**Why**: Maintains order per user.
+
+### Round-robin
+Distribute evenly across partitions.
+
+**When**: Don't care about order.
+
+## Consumer Groups
+
+**Scenario**: Topic has 4 partitions, Consumer Group has 2 consumers.
+
+```
+Partition 0 → Consumer 1
+Partition 1 → Consumer 1
+Partition 2 → Consumer 2
+Partition 3 → Consumer 2
+```
+
+**Add Consumer 3**:
+Rebalance happens:
+```
+Partition 0 → Consumer 1
+Partition 1 → Consumer 2
+Partition 2 → Consumer 3
+Partition 3 → Consumer 1
+```
+
+## Retention
+
+Kafka retains messages (default 7 days).
+
+**Why?**
+- New consumers can read old messages
+- Replay messages after bugs
+- Audit trail
+
+## Real-World: LinkedIn (Kafka creators)
+
+- **7 trillion messages/day**
+- 4000+ Kafka brokers
+- Powers activity tracking, metrics, logging
+
+## Code Example
+
+```java
+// Producer
+Producer<String, String> producer = new KafkaProducer<>(props);
+ProducerRecord<String, String> record =
+    new ProducerRecord<>(""user-events"", ""user123"", ""login"");
+producer.send(record);
+
+// Consumer
+Consumer<String, String> consumer = new KafkaConsumer<>(props);
+consumer.subscribe(Collections.singletonList(""user-events""));
+
+while (true) {
+    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+    for (ConsumerRecord<String, String> record : records) {
+        System.out.printf(""User %s: %s\n"", record.key(), record.value());
+    }
+}
+```
+
+## Interview Questions
+
+**Q: Kafka vs RabbitMQ?**
+A:
+- **Kafka**: High throughput, event streaming, retention
+- **RabbitMQ**: Traditional queuing, complex routing, no retention
+
+**Q: How to ensure order?**
+A: Same key → same partition (order within partition guaranteed)
+
+**Q: What if consumer is slow?**
+A:
+- Add more consumers (more parallelism)
+- Increase partitions (if needed)
+- Optimize consumer code",
+                Resources = "https://kafka.apache.org/documentation/",
+                Tags = new() { "Kafka", "Message Queue", "Event Streaming" }
+            },
+
+            new() {
+                Title = "Database Replication - Master-Slave vs Master-Master",
+                Category = "Database",
+                Difficulty = "Medium",
+                KeyConcepts = "Replication Lag, Read Replicas, Failover, Split-brain",
+                Lesson = @"# Database Replication
+
+## Why Replicate?
+
+1. **High Availability**: If master fails, replica takes over
+2. **Read Scalability**: Distribute reads across replicas
+3. **Geographic Distribution**: Replicas closer to users (lower latency)
+4. **Backup**: Replicas as backup (though not substitute for backups)
+
+## Replication Strategies
+
+### 1. Master-Slave (Primary-Replica)
+
+**One master** (writes), **multiple slaves** (reads).
+
+#### How it Works:
+1. All writes go to master
+2. Master logs changes (binary log / WAL)
+3. Replicas pull changes and apply them
+4. Clients read from replicas
+
+#### Pros:
+- ✅ Simple to implement
+- ✅ Read scalability (add more replicas)
+- ✅ No write conflicts
+
+#### Cons:
+- ❌ Single point of failure for writes
+- ❌ Replication lag (replicas slightly behind)
+- ❌ Failover requires manual intervention or automation
+
+#### When to Use:
+- Read-heavy workloads (90% reads, 10% writes)
+- Acceptable to read slightly stale data
+- Example: Blog, news site, product catalog
+
+### 2. Master-Master (Multi-Primary)
+
+**Multiple masters**, all accept writes.
+
+#### How it Works:
+1. Both masters accept writes
+2. Changes replicate bidirectionally
+3. Conflict resolution needed
+
+#### Pros:
+- ✅ No single point of failure
+- ✅ Write scalability (writes distributed)
+- ✅ Lower write latency (write to nearest master)
+
+#### Cons:
+- ❌ Write conflicts (two masters update same row)
+- ❌ Complex conflict resolution
+- ❌ Eventual consistency
+
+#### When to Use:
+- Write-heavy workloads
+- Multi-region deployment
+- Need high availability for writes
+- Example: Distributed teams editing documents
+
+## Replication Modes
+
+### Synchronous Replication
+Master waits for replica to confirm before returning success.
+
+**Pros**: Strong consistency (replica always up-to-date)
+**Cons**: Slow writes (network latency)
+
+**When**: Banking, financial transactions
+
+### Asynchronous Replication
+Master returns success immediately, replicates in background.
+
+**Pros**: Fast writes
+**Cons**: Replication lag, potential data loss if master fails
+
+**When**: Most web applications (acceptable trade-off)
+
+## Replication Lag
+
+**Problem**: Replicas behind master (seconds to minutes).
+
+### Scenarios:
+
+#### Read Your Own Writes
+User writes, immediately reads from replica → doesn't see their change!
+
+**Solution**: Read from master for short time after write.
+
+#### Monotonic Reads
+User reads from replica 1 (sees update), then replica 2 (doesn't see it) → time went backwards!
+
+**Solution**: Sticky sessions (same user → same replica).
+
+## Failover
+
+**Scenario**: Master dies, promote replica to master.
+
+### Challenges:
+
+#### 1. Detecting Failure
+- Heartbeats timeout
+- False positives (network issue, not actual failure)
+
+#### 2. Choosing New Master
+- Most up-to-date replica
+- Manual selection vs automatic
+
+#### 3. Reconfiguring Clients
+- Update app config to point to new master
+- DNS change (takes time to propagate)
+
+#### 4. Split-brain
+Two nodes think they're master → data divergence!
+
+**Solution**: Quorum (majority must agree), fencing (prevent old master from accepting writes).
+
+## Real-World Example: Instagram
+
+**Setup**:
+- PostgreSQL master in AWS us-east-1
+- Replicas in multiple regions
+- Reads from local replica (low latency)
+- Writes to master (tolerate latency)
+
+**Failover**:
+- Automated failover with health checks
+- Replica promotion takes ~30 seconds
+
+## Code Example (PostgreSQL)
+
+```sql
+-- On Master: Create replication user
+CREATE USER replicator REPLICATION LOGIN ENCRYPTED PASSWORD 'secret';
+
+-- On Master: postgresql.conf
+wal_level = replica
+max_wal_senders = 3
+
+-- On Replica: recovery.conf
+primary_conninfo = 'host=master-db port=5432 user=replicator password=secret'
+```
+
+## Interview Questions
+
+**Q: Master-Slave vs Master-Master?**
+A:
+- **Master-Slave**: Simple, read scaling, single write point
+- **Master-Master**: Complex, write scaling, conflict resolution needed
+
+**Q: How to handle replication lag?**
+A:
+1. Read from master for critical data
+2. Show users ""Updating..."" message
+3. Eventual consistency is acceptable for most data
+
+**Q: What happens if master fails during write?**
+A:
+- **Synchronous**: Write either fully committed on replica or not at all
+- **Asynchronous**: May lose last few writes
+
+**Q: How to replicate across continents?**
+A:
+- Asynchronous replication (latency too high for sync)
+- Master per region
+- Conflict resolution strategy",
+                Resources = "https://www.postgresql.org/docs/current/high-availability.html",
+                Tags = new() { "Replication", "Database", "High Availability", "Failover" }
+            },
+
+            new() {
+                Title = "Design a URL Shortener (like bit.ly)",
+                Category = "System Design Problems",
+                Difficulty = "Medium",
+                KeyConcepts = "Base62 Encoding, Hash Collision, Rate Limiting, Analytics",
+                Lesson = @"# System Design: URL Shortener
+
+## Requirements
+
+### Functional:
+1. Generate short URL from long URL
+2. Redirect short URL to original URL
+3. Custom aliases (optional)
+4. Expiration (optional)
+
+### Non-Functional:
+1. Low latency (< 100ms)
+2. High availability (99.9%+)
+3. Scalable (billions of URLs)
+
+## Back-of-Envelope Estimation
+
+**Assumptions**:
+- 100M URLs created/month
+- 10:1 read/write ratio (1B redirects/month)
+
+**Storage**:
+- URL: ~500 bytes average
+- 100M × 500 bytes = 50 GB/month
+- 5 years = 3 TB
+
+**Bandwidth**:
+- Writes: 100M/month ÷ 2.6M sec/month ≈ 40 writes/sec
+- Reads: 1B/month ÷ 2.6M ≈ 400 reads/sec
+
+## API Design
+
+```
+POST /api/shorten
+Body: { ""url"": ""https://example.com/very/long/url"" }
+Response: { ""short"": ""bit.ly/Xy3kL"" }
+
+GET /Xy3kL
+Response: 302 Redirect to original URL
+```
+
+## Database Schema
+
+```sql
+CREATE TABLE urls (
+    id BIGSERIAL PRIMARY KEY,
+    short_code VARCHAR(10) UNIQUE NOT NULL,
+    original_url TEXT NOT NULL,
+    user_id BIGINT,
+    created_at TIMESTAMP,
+    expires_at TIMESTAMP,
+    click_count INT DEFAULT 0
+);
+
+CREATE INDEX idx_short_code ON urls(short_code);
+```
+
+## Short URL Generation
+
+### Option 1: Hash Function
+```
+MD5(original_url) → take first 7 chars
+```
+
+**Problem**: Collisions! Different URLs → same hash.
+
+**Solution**: Append counter, rehash until unique.
+
+### Option 2: Base62 Encoding (Better!)
+
+Use auto-incrementing ID:
+```
+ID: 123456789
+Base62: aZl9x (shorter!)
+```
+
+**Base62**: [a-z A-Z 0-9] = 62 characters
+- 7 chars = 62^7 = 3.5 trillion combinations
+
+```python
+def encode_base62(num):
+    chars = ""0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ""
+    result = []
+    while num > 0:
+        result.append(chars[num % 62])
+        num //= 62
+    return ''.join(reversed(result))
+
+# Example: 123456789 → ""aZl9x""
+```
+
+**Pros**:
+- No collisions (ID is unique)
+- Predictable length
+- Fast
+
+**Cons**:
+- Sequential (can guess next URL)
+
+**Solution for sequential**: Add random salt or use UUID.
+
+## System Architecture
+
+```
+[User] → [Load Balancer]
+           ↓
+    [API Servers] ← [Cache (Redis)]
+           ↓
+    [Database (PostgreSQL)]
+           ↓
+    [Object Storage] (for analytics data)
+```
+
+## Optimization: Caching
+
+**Problem**: Same popular URLs redirected millions of times.
+
+**Solution**: Cache short_code → original_url
+
+```
+Cache Layer (Redis):
+- TTL: 24 hours
+- Eviction: LRU
+- Cache hit ratio: 80%+
+
+Flow:
+1. Check cache for short_code
+2. If hit: return original_url (fast!)
+3. If miss: query DB, update cache
+```
+
+## Optimization: Database Sharding
+
+**When**: Billions of URLs, single DB can't handle.
+
+**Shard Key**: `short_code`
+```
+Shard = hash(short_code) % num_shards
+```
+
+## Analytics
+
+Track clicks, geography, referrers.
+
+```sql
+CREATE TABLE analytics (
+    id BIGSERIAL PRIMARY KEY,
+    short_code VARCHAR(10),
+    clicked_at TIMESTAMP,
+    ip_address INET,
+    user_agent TEXT,
+    referrer TEXT
+);
+```
+
+**Problem**: High write volume (1B/month).
+
+**Solution**:
+- Write to message queue (Kafka)
+- Batch process into analytics DB
+- Or use time-series DB (InfluxDB, TimescaleDB)
+
+## Handling Scale
+
+### Writes (40/sec):
+- Single DB can handle
+- Replicas for high availability
+
+### Reads (400/sec):
+- Cache layer (Redis) handles 90%+
+- Read replicas for cache misses
+
+### Millions of URLs/day:
+- Partition by date or hash
+- Separate analytics DB
+
+## Custom Aliases
+
+User wants: `bit.ly/my-link`
+
+```sql
+-- Check if alias available
+SELECT * FROM urls WHERE short_code = 'my-link';
+
+-- If available, use it
+-- If not, return error
+```
+
+**Challenge**: Prevent abuse (reserve popular terms).
+
+## Expiration
+
+```sql
+-- Cleanup job (runs daily)
+DELETE FROM urls WHERE expires_at < NOW();
+```
+
+**Alternative**: Lazy deletion (check on redirect).
+
+## Interview Discussion Points
+
+1. **Collision handling**: Base62 vs hashing
+2. **Scalability**: Caching, sharding, read replicas
+3. **Analytics**: Separate concerns, message queue
+4. **Availability**: Multiple data centers, failover
+5. **Security**: Rate limiting, blacklist malicious URLs",
+                Resources = "https://www.youtube.com/watch?v=fMZMm_0ZhK4",
+                Tags = new() { "System Design", "URL Shortener", "Design Problem" }
+            },
+
+            new() {
+                Title = "API Rate Limiting",
+                Category = "API Design",
+                Difficulty = "Medium",
+                KeyConcepts = "Token Bucket, Leaky Bucket, Sliding Window, Distributed Rate Limiting",
+                Lesson = @"# API Rate Limiting
+
+## Why Rate Limit?
+
+1. **Prevent abuse**: Stop malicious users from overwhelming system
+2. **Fair usage**: Ensure all users get fair share
+3. **Cost control**: Limit API calls to third-party services
+4. **Revenue**: Tiered pricing (free: 100/hr, paid: 10k/hr)
+
+## Rate Limiting Algorithms
+
+### 1. Token Bucket
+
+**How it works**:
+- Bucket holds tokens (e.g., 100 tokens)
+- Each request consumes 1 token
+- Tokens refill at fixed rate (e.g., 10/second)
+- If no tokens → reject request
+
+**Pros**:
+- ✅ Handles burst traffic (up to bucket size)
+- ✅ Simple to implement
+
+**Cons**:
+- ❌ Difficult to reason about limits
+
+```python
+class TokenBucket:
+    def __init__(self, capacity, refill_rate):
+        self.capacity = capacity
+        self.tokens = capacity
+        self.refill_rate = refill_rate  # tokens/second
+        self.last_refill = time.time()
+
+    def allow_request(self):
+        self.refill()
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
+
+    def refill(self):
+        now = time.time()
+        elapsed = now - self.last_refill
+        tokens_to_add = elapsed * self.refill_rate
+        self.tokens = min(self.capacity, self.tokens + tokens_to_add)
+        self.last_refill = now
+```
+
+### 2. Leaky Bucket
+
+**How it works**:
+- Requests enter bucket (queue)
+- Requests processed at fixed rate
+- If bucket full → reject request
+
+**Pros**:
+- ✅ Smooth traffic (constant outflow rate)
+- ✅ Good for system protection
+
+**Cons**:
+- ❌ Doesn't handle bursts well
+- ❌ Old requests block new ones
+
+**When**: Background job processing, steady throughput needed
+
+### 3. Fixed Window
+
+**How it works**:
+- Window: 1-minute intervals
+- Allow N requests per window
+- Counter resets at window boundary
+
+**Problem**: Burst at window edges!
+
+```
+Window 1 (00:00-01:00): 100 requests at 00:59
+Window 2 (01:00-02:00): 100 requests at 01:00
+→ 200 requests in 1 second! (not limited properly)
+```
+
+### 4. Sliding Window Log
+
+**How it works**:
+- Store timestamp of each request
+- Count requests in last N seconds
+- Remove timestamps older than window
+
+**Pros**:
+- ✅ Accurate
+- ✅ No burst problem
+
+**Cons**:
+- ❌ Memory intensive (store all timestamps)
+
+```python
+from collections import deque
+import time
+
+class SlidingWindowLog:
+    def __init__(self, limit, window_seconds):
+        self.limit = limit
+        self.window = window_seconds
+        self.requests = deque()
+
+    def allow_request(self):
+        now = time.time()
+        # Remove old requests
+        while self.requests and self.requests[0] < now - self.window:
+            self.requests.popleft()
+
+        if len(self.requests) < self.limit:
+            self.requests.append(now)
+            return True
+        return False
+```
+
+### 5. Sliding Window Counter (Best!)
+
+**How it works**:
+- Hybrid of fixed window and sliding log
+- Approximate sliding window with less memory
+
+```python
+def allow_request(user_id, limit=100, window=60):
+    now = time.time()
+    current_window = int(now // window)
+    previous_window = current_window - 1
+
+    # Get counts
+    current_count = redis.get(f""rate:{user_id}:{current_window}"") or 0
+    previous_count = redis.get(f""rate:{user_id}:{previous_window}"") or 0
+
+    # Calculate weighted count
+    elapsed_in_window = now % window
+    weight = 1 - (elapsed_in_window / window)
+    estimated_count = (previous_count * weight) + current_count
+
+    if estimated_count < limit:
+        redis.incr(f""rate:{user_id}:{current_window}"")
+        redis.expire(f""rate:{user_id}:{current_window}"", window * 2)
+        return True
+    return False
+```
+
+**Pros**:
+- ✅ Memory efficient
+- ✅ Accurate enough
+- ✅ No burst problem
+
+## Distributed Rate Limiting
+
+**Challenge**: Multiple servers, how to share rate limit state?
+
+### Option 1: Centralized Store (Redis)
+
+```python
+def rate_limit(user_id, limit=100):
+    key = f""rate_limit:{user_id}""
+    current = redis.incr(key)
+
+    if current == 1:
+        redis.expire(key, 60)  # 60 second window
+
+    return current <= limit
+```
+
+**Pros**: Accurate
+**Cons**: Redis becomes bottleneck, single point of failure
+
+**Solution**: Redis Cluster with replication
+
+### Option 2: Local Counters + Gossip
+
+Each server maintains local counter, periodically syncs.
+
+**Pros**: No central dependency
+**Cons**: Less accurate (eventual consistency)
+
+## Response Headers
+
+Tell clients their rate limit status:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 47
+X-RateLimit-Reset: 1640000000
+Retry-After: 60
+```
+
+## Rate Limit by What?
+
+- **User ID**: Per-user limits
+- **API Key**: Per-client limits
+- **IP Address**: Anonymous users
+- **Endpoint**: Different limits per endpoint
+
+## Real-World Example: GitHub API
+
+**Limits**:
+- Unauthenticated: 60/hour (by IP)
+- Authenticated: 5,000/hour (by user)
+- Search API: 30/minute (expensive operation)
+
+**Response**:
+```
+HTTP 429 Too Many Requests
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1640000000
+Retry-After: 60
+```
+
+## Interview Questions
+
+**Q: Which algorithm to use?**
+A: Token bucket for flexibility, sliding window counter for accuracy
+
+**Q: Where to store rate limit state?**
+A: Redis (fast, distributed), or in-memory for small scale
+
+**Q: How to handle distributed rate limiting?**
+A: Centralized Redis with replication and fallback
+
+**Q: Rate limit returned 429. What should client do?**
+A: Exponential backoff, respect Retry-After header",
+                Resources = "https://stripe.com/blog/rate-limiters",
+                Tags = new() { "Rate Limiting", "API Design", "Token Bucket" }
             }
         };
     }
