@@ -12170,25 +12170,47 @@ Kafka retains messages (default 7 days).
 - 4000+ Kafka brokers
 - Powers activity tracking, metrics, logging
 
-## Code Example
+## Code Example (C# with Confluent.Kafka)
 
-```java
+```csharp
+// Install: Confluent.Kafka NuGet package
+
 // Producer
-Producer<String, String> producer = new KafkaProducer<>(props);
-ProducerRecord<String, String> record =
-    new ProducerRecord<>(""user-events"", ""user123"", ""login"");
-producer.send(record);
+using Confluent.Kafka;
+
+var config = new ProducerConfig { BootstrapServers = ""localhost:9092"" };
+
+using var producer = new ProducerBuilder<string, string>(config).Build();
+
+var message = new Message<string, string>
+{
+    Key = ""user123"",
+    Value = ""login""
+};
+
+var result = await producer.ProduceAsync(""user-events"", message);
+Console.WriteLine($""Delivered to {result.TopicPartitionOffset}"");
 
 // Consumer
-Consumer<String, String> consumer = new KafkaConsumer<>(props);
-consumer.subscribe(Collections.singletonList(""user-events""));
+var consumerConfig = new ConsumerConfig
+{
+    BootstrapServers = ""localhost:9092"",
+    GroupId = ""user-event-consumers"",
+    AutoOffsetReset = AutoOffsetReset.Earliest
+};
 
-while (true) {
-    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-    for (ConsumerRecord<String, String> record : records) {
-        System.out.printf(""User %s: %s\n"", record.key(), record.value());
-    }
+using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
+consumer.Subscribe(""user-events"");
+
+var cts = new CancellationTokenSource();
+
+while (!cts.Token.IsCancellationRequested)
+{
+    var consumeResult = consumer.Consume(cts.Token);
+    Console.WriteLine($""User {consumeResult.Message.Key}: {consumeResult.Message.Value}"");
 }
+
+consumer.Close();
 ```
 
 ## Interview Questions
@@ -12470,16 +12492,39 @@ Base62: aZl9x (shorter!)
 **Base62**: [a-z A-Z 0-9] = 62 characters
 - 7 chars = 62^7 = 3.5 trillion combinations
 
-```python
-def encode_base62(num):
-    chars = ""0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ""
-    result = []
-    while num > 0:
-        result.append(chars[num % 62])
-        num //= 62
-    return ''.join(reversed(result))
+```csharp
+public class Base62Encoder
+{
+    private const string Chars = ""0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"";
 
-# Example: 123456789 → ""aZl9x""
+    public static string Encode(long num)
+    {
+        if (num == 0) return ""0"";
+
+        var result = new StringBuilder();
+        while (num > 0)
+        {
+            result.Insert(0, Chars[(int)(num % 62)]);
+            num /= 62;
+        }
+        return result.ToString();
+    }
+
+    public static long Decode(string str)
+    {
+        long result = 0;
+        foreach (char c in str)
+        {
+            result = result * 62 + Chars.IndexOf(c);
+        }
+        return result;
+    }
+}
+
+// Example usage:
+long id = 123456789;
+string shortCode = Base62Encoder.Encode(id);  // ""aZl9x""
+long decoded = Base62Encoder.Decode(shortCode);  // 123456789
 ```
 
 **Pros**:
@@ -12632,27 +12677,58 @@ DELETE FROM urls WHERE expires_at < NOW();
 **Cons**:
 - ❌ Difficult to reason about limits
 
-```python
-class TokenBucket:
-    def __init__(self, capacity, refill_rate):
-        self.capacity = capacity
-        self.tokens = capacity
-        self.refill_rate = refill_rate  # tokens/second
-        self.last_refill = time.time()
+```csharp
+public class TokenBucket
+{
+    private readonly int _capacity;
+    private readonly double _refillRate;
+    private double _tokens;
+    private DateTime _lastRefill;
+    private readonly object _lock = new();
 
-    def allow_request(self):
-        self.refill()
-        if self.tokens >= 1:
-            self.tokens -= 1
-            return True
-        return False
+    public TokenBucket(int capacity, double refillRate)
+    {
+        _capacity = capacity;
+        _refillRate = refillRate; // tokens per second
+        _tokens = capacity;
+        _lastRefill = DateTime.UtcNow;
+    }
 
-    def refill(self):
-        now = time.time()
-        elapsed = now - self.last_refill
-        tokens_to_add = elapsed * self.refill_rate
-        self.tokens = min(self.capacity, self.tokens + tokens_to_add)
-        self.last_refill = now
+    public bool AllowRequest()
+    {
+        lock (_lock)
+        {
+            Refill();
+
+            if (_tokens >= 1)
+            {
+                _tokens -= 1;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private void Refill()
+    {
+        var now = DateTime.UtcNow;
+        var elapsed = (now - _lastRefill).TotalSeconds;
+        var tokensToAdd = elapsed * _refillRate;
+        _tokens = Math.Min(_capacity, _tokens + tokensToAdd);
+        _lastRefill = now;
+    }
+}
+
+// Usage
+var rateLimiter = new TokenBucket(capacity: 100, refillRate: 10);
+if (rateLimiter.AllowRequest())
+{
+    // Process request
+}
+else
+{
+    // Reject: 429 Too Many Requests
+}
 ```
 
 ### 2. Leaky Bucket
@@ -12701,26 +12777,50 @@ Window 2 (01:00-02:00): 100 requests at 01:00
 **Cons**:
 - ❌ Memory intensive (store all timestamps)
 
-```python
-from collections import deque
-import time
+```csharp
+public class SlidingWindowLog
+{
+    private readonly int _limit;
+    private readonly int _windowSeconds;
+    private readonly Queue<DateTime> _requests;
+    private readonly object _lock = new();
 
-class SlidingWindowLog:
-    def __init__(self, limit, window_seconds):
-        self.limit = limit
-        self.window = window_seconds
-        self.requests = deque()
+    public SlidingWindowLog(int limit, int windowSeconds)
+    {
+        _limit = limit;
+        _windowSeconds = windowSeconds;
+        _requests = new Queue<DateTime>();
+    }
 
-    def allow_request(self):
-        now = time.time()
-        # Remove old requests
-        while self.requests and self.requests[0] < now - self.window:
-            self.requests.popleft()
+    public bool AllowRequest()
+    {
+        lock (_lock)
+        {
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddSeconds(-_windowSeconds);
 
-        if len(self.requests) < self.limit:
-            self.requests.append(now)
-            return True
-        return False
+            // Remove old requests
+            while (_requests.Count > 0 && _requests.Peek() < cutoff)
+            {
+                _requests.Dequeue();
+            }
+
+            if (_requests.Count < _limit)
+            {
+                _requests.Enqueue(now);
+                return true;
+            }
+            return false;
+        }
+    }
+}
+
+// Usage
+var rateLimiter = new SlidingWindowLog(limit: 100, windowSeconds: 60);
+if (rateLimiter.AllowRequest())
+{
+    // Allow request
+}
 ```
 
 ### 5. Sliding Window Counter (Best!)
@@ -12729,26 +12829,58 @@ class SlidingWindowLog:
 - Hybrid of fixed window and sliding log
 - Approximate sliding window with less memory
 
-```python
-def allow_request(user_id, limit=100, window=60):
-    now = time.time()
-    current_window = int(now // window)
-    previous_window = current_window - 1
+```csharp
+public class SlidingWindowCounter
+{
+    private readonly IDatabase _redis;
 
-    # Get counts
-    current_count = redis.get(f""rate:{user_id}:{current_window}"") or 0
-    previous_count = redis.get(f""rate:{user_id}:{previous_window}"") or 0
+    public SlidingWindowCounter(IDatabase redis)
+    {
+        _redis = redis;
+    }
 
-    # Calculate weighted count
-    elapsed_in_window = now % window
-    weight = 1 - (elapsed_in_window / window)
-    estimated_count = (previous_count * weight) + current_count
+    public async Task<bool> AllowRequestAsync(string userId, int limit = 100, int window = 60)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var currentWindow = now / window;
+        var previousWindow = currentWindow - 1;
 
-    if estimated_count < limit:
-        redis.incr(f""rate:{user_id}:{current_window}"")
-        redis.expire(f""rate:{user_id}:{current_window}"", window * 2)
-        return True
-    return False
+        // Get counts from Redis
+        var currentCountTask = _redis.StringGetAsync($""rate:{userId}:{currentWindow}"");
+        var previousCountTask = _redis.StringGetAsync($""rate:{userId}:{previousWindow}"");
+
+        await Task.WhenAll(currentCountTask, previousCountTask);
+
+        var currentCount = (long)(currentCountTask.Result.HasValue
+            ? currentCountTask.Result
+            : 0);
+        var previousCount = (long)(previousCountTask.Result.HasValue
+            ? previousCountTask.Result
+            : 0);
+
+        // Calculate weighted count
+        var elapsedInWindow = now % window;
+        var weight = 1.0 - (elapsedInWindow / (double)window);
+        var estimatedCount = (previousCount * weight) + currentCount;
+
+        if (estimatedCount < limit)
+        {
+            await _redis.StringIncrementAsync($""rate:{userId}:{currentWindow}"");
+            await _redis.KeyExpireAsync($""rate:{userId}:{currentWindow}"", TimeSpan.FromSeconds(window * 2));
+            return true;
+        }
+        return false;
+    }
+}
+
+// Usage with StackExchange.Redis
+var redis = ConnectionMultiplexer.Connect(""localhost"").GetDatabase();
+var rateLimiter = new SlidingWindowCounter(redis);
+
+if (await rateLimiter.AllowRequestAsync(""user123"", limit: 100, window: 60))
+{
+    // Allow request
+}
 ```
 
 **Pros**:
@@ -12762,15 +12894,57 @@ def allow_request(user_id, limit=100, window=60):
 
 ### Option 1: Centralized Store (Redis)
 
-```python
-def rate_limit(user_id, limit=100):
-    key = f""rate_limit:{user_id}""
-    current = redis.incr(key)
+```csharp
+public class RedisRateLimiter
+{
+    private readonly IDatabase _redis;
 
-    if current == 1:
-        redis.expire(key, 60)  # 60 second window
+    public RedisRateLimiter(IDatabase redis)
+    {
+        _redis = redis;
+    }
 
-    return current <= limit
+    public async Task<bool> AllowRequestAsync(string userId, int limit = 100, int windowSeconds = 60)
+    {
+        var key = $""rate_limit:{userId}"";
+        var current = await _redis.StringIncrementAsync(key);
+
+        if (current == 1)
+        {
+            await _redis.KeyExpireAsync(key, TimeSpan.FromSeconds(windowSeconds));
+        }
+
+        return current <= limit;
+    }
+}
+
+// Usage in ASP.NET Core middleware
+public class RateLimitMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly RedisRateLimiter _rateLimiter;
+
+    public RateLimitMiddleware(RequestDelegate next, RedisRateLimiter rateLimiter)
+    {
+        _next = next;
+        _rateLimiter = rateLimiter;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var userId = context.User.FindFirst(""sub"")?.Value ?? context.Connection.RemoteIpAddress?.ToString();
+
+        if (!await _rateLimiter.AllowRequestAsync(userId, limit: 100, windowSeconds: 60))
+        {
+            context.Response.StatusCode = 429;
+            context.Response.Headers.Add(""Retry-After"", ""60"");
+            await context.Response.WriteAsync(""Too Many Requests"");
+            return;
+        }
+
+        await _next(context);
+    }
+}
 ```
 
 **Pros**: Accurate
