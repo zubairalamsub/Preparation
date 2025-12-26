@@ -34,6 +34,8 @@ public class SystemDesignTopic
     public int ConfidenceLevel { get; set; } // 1-5
     public string? Notes { get; set; }
     public string? KeyConcepts { get; set; }
+    public string? Lesson { get; set; } // Detailed lesson content
+    public string? DiagramUrl { get; set; } // Architecture diagram URL
     public string? Resources { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastReviewedAt { get; set; }

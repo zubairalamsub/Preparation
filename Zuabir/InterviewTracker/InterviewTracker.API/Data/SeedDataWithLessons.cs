@@ -11268,4 +11268,617 @@ var customer = await context.Customers
             }
         };
     }
+
+    public static List<SystemDesignTopic> GetSystemDesignTopicsWithLessons()
+    {
+        return new List<SystemDesignTopic>
+        {
+            // Fundamentals
+            new() {
+                Title = "CAP Theorem - The Foundation of Distributed Systems",
+                Category = "Fundamentals",
+                Difficulty = "Medium",
+                KeyConcepts = "Consistency, Availability, Partition Tolerance - Choose only 2",
+                Lesson = @"# CAP Theorem
+
+## What is CAP?
+
+**C**onsistency: All nodes see the same data at the same time
+**A**vailability: Every request receives a response (success or failure)
+**P**artition Tolerance: System continues despite network partitions
+
+## The Core Principle
+
+**You can only guarantee 2 out of 3** when a network partition occurs.
+
+## Real-World Trade-offs
+
+### CP Systems (Consistency + Partition Tolerance)
+- **Example**: Banking systems, MongoDB (in certain configurations)
+- **Trade-off**: May become unavailable during network issues
+- **When**: Financial transactions, inventory management
+- **Why**: Better to be unavailable than show wrong balance
+
+### AP Systems (Availability + Partition Tolerance)
+- **Example**: DNS, Cassandra, DynamoDB
+- **Trade-off**: May return stale or different data on different nodes
+- **When**: Social media feeds, product catalogs
+- **Why**: Better to show slightly old data than be down
+
+### CA Systems (Consistency + Availability)
+- **Reality**: Can't truly exist in distributed systems
+- **Example**: Single-node databases (not truly distributed)
+- **Why**: Network partitions are inevitable in distributed systems
+
+## Interview Insights
+
+When asked ""Would you choose CP or AP?"":
+1. Ask about use case
+2. Discuss consistency requirements
+3. Analyze failure scenarios
+4. Consider business impact
+
+## Example Scenario
+
+**E-commerce Product Catalog**:
+- **AP** for browsing (okay if price is 2 seconds old)
+- **CP** for checkout (must have consistent inventory)
+- **Solution**: Hybrid approach with different systems
+
+## Common Misconceptions
+
+❌ ""Choose 2 permanently"" → Actually, choose 2 **during partition**
+❌ ""No system can be CA"" → Single-node systems can, but aren't distributed
+✅ During normal operation, you get all 3",
+                Resources = "https://www.youtube.com/watch?v=k-Yaq8AHlFA",
+                Tags = new() { "Distributed Systems", "Theory", "Trade-offs" }
+            },
+
+            new() {
+                Title = "Horizontal vs Vertical Scaling",
+                Category = "Fundamentals",
+                Difficulty = "Easy",
+                KeyConcepts = "Scale Up vs Scale Out, Cost vs Complexity",
+                Lesson = @"# Scaling Strategies
+
+## Vertical Scaling (Scale Up)
+
+**Add more power to existing machine** (more CPU, RAM, storage)
+
+### Pros:
+- ✅ Simpler code (no distributed complexity)
+- ✅ No network latency
+- ✅ ACID transactions easier
+- ✅ Easier to maintain
+
+### Cons:
+- ❌ Physical limits (can't infinitely upgrade)
+- ❌ Single point of failure
+- ❌ Downtime during upgrades
+- ❌ Eventually becomes very expensive
+
+### When to Use:
+- Startups/MVPs
+- Databases that need ACID guarantees
+- Applications not designed for distribution
+
+## Horizontal Scaling (Scale Out)
+
+**Add more machines** to distribute load
+
+### Pros:
+- ✅ Near-infinite scaling potential
+- ✅ Better fault tolerance (redundancy)
+- ✅ No downtime for upgrades (rolling deployment)
+- ✅ Cost-effective at scale
+
+### Cons:
+- ❌ Complex code (distributed systems complexity)
+- ❌ Data consistency challenges
+- ❌ Network latency between nodes
+- ❌ More infrastructure to manage
+
+### When to Use:
+- High traffic applications
+- Global user base
+- Unpredictable growth
+- Need high availability
+
+## Real-World Example
+
+**Netflix**:
+- **Vertically scaled**: Database servers (large instances)
+- **Horizontally scaled**: Web servers, API servers (thousands of instances)
+
+## Decision Matrix
+
+| Factor | Vertical | Horizontal |
+|--------|----------|------------|
+| Initial cost | Lower | Higher |
+| Long-term cost | Higher | Lower |
+| Complexity | Low | High |
+| Max scale | Limited | Unlimited |
+| Downtime | Yes | No |
+| Fault tolerance | Low | High |
+
+## Interview Tip
+
+Don't say ""horizontal is always better"". Explain:
+1. Current scale and growth
+2. Cost constraints
+3. Team expertise
+4. Specific use case requirements",
+                Resources = "https://www.youtube.com/watch?v=xpDnVSmNFX0",
+                Tags = new() { "Scaling", "Architecture", "Fundamentals" }
+            },
+
+            new() {
+                Title = "Load Balancing - Distributing Traffic Efficiently",
+                Category = "Load Balancing",
+                Difficulty = "Medium",
+                KeyConcepts = "Round Robin, Least Connections, Weighted, Health Checks",
+                Lesson = @"# Load Balancing
+
+## What is a Load Balancer?
+
+Distributes incoming traffic across multiple servers to:
+- Improve responsiveness
+- Increase availability
+- Prevent overload
+
+## Load Balancing Algorithms
+
+### 1. Round Robin
+Distributes requests sequentially across servers.
+- **Pros**: Simple, fair distribution
+- **Cons**: Doesn't account for server load or capacity
+- **When**: Servers have similar capacity
+
+### 2. Least Connections
+Sends requests to server with fewest active connections.
+- **Pros**: Better for long-lived connections
+- **Cons**: Slight overhead to track connections
+- **When**: WebSockets, long-polling, video streaming
+
+### 3. Weighted Round Robin
+Servers with higher weights receive more requests.
+- **Pros**: Accounts for different server capacities
+- **Cons**: Need to configure weights manually
+- **When**: Mixed server hardware
+
+### 4. IP Hash / Sticky Sessions
+Same client always goes to same server (based on IP hash).
+- **Pros**: Session persistence without shared storage
+- **Cons**: Uneven distribution if traffic is skewed
+- **When**: Shopping carts, user sessions (legacy apps)
+
+### 5. Least Response Time
+Routes to server with fastest response time.
+- **Pros**: Best user experience
+- **Cons**: More complex to implement
+- **When**: Performance-critical applications
+
+## L4 vs L7 Load Balancing
+
+### Layer 4 (Transport Layer)
+- Routes based on IP and port
+- Faster (less inspection)
+- Cannot read application data
+- **Example**: TCP/UDP load balancing
+
+### Layer 7 (Application Layer)
+- Routes based on HTTP headers, cookies, URL path
+- Slower (more inspection)
+- Can make intelligent routing decisions
+- **Example**: Route /api to API servers, /static to CDN
+
+## Health Checks
+
+Load balancers ping servers periodically to check health:
+- **Active checks**: Send requests to health endpoint
+- **Passive checks**: Monitor real traffic for errors
+
+If server fails health check → removed from pool
+
+## Real-World Architecture
+
+```
+[Users] → [DNS] → [Global LB (L7)]
+                       ↓
+        ┌──────────────┼──────────────┐
+        ↓              ↓              ↓
+    [Regional LB]  [Regional LB]  [Regional LB]
+        ↓              ↓              ↓
+    [Servers]      [Servers]      [Servers]
+```
+
+## Common Interview Questions
+
+**Q: How do you handle session persistence?**
+A: Options:
+1. Sticky sessions (IP hash)
+2. Session store (Redis)
+3. JWT tokens (stateless)
+
+**Q: Load balancer is a single point of failure?**
+A: Use multiple load balancers with:
+- Active-passive (failover)
+- Active-active (DNS round-robin)
+
+**Q: How to add/remove servers without downtime?**
+A: Graceful shutdown:
+1. Stop accepting new requests
+2. Wait for existing requests to finish
+3. Remove from load balancer pool",
+                Resources = "https://aws.amazon.com/what-is/load-balancing/",
+                Tags = new() { "Load Balancing", "Availability", "Scalability" }
+            },
+
+            new() {
+                Title = "Caching Strategies - Read Performance Optimization",
+                Category = "Caching",
+                Difficulty = "Medium",
+                KeyConcepts = "Cache-Aside, Read-Through, Write-Through, Write-Behind",
+                Lesson = @"# Caching Strategies
+
+## Why Cache?
+
+- **Speed**: RAM is 100,000x faster than disk
+- **Reduce load**: Fewer database queries
+- **Cost**: Less expensive than scaling database
+
+## Caching Patterns
+
+### 1. Cache-Aside (Lazy Loading)
+
+**Flow**:
+1. Check cache
+2. If miss → fetch from DB
+3. Update cache
+4. Return data
+
+**Pros**:
+- ✅ Only cache what's needed
+- ✅ Cache failures don't break system
+
+**Cons**:
+- ❌ First request is slow (cache miss)
+- ❌ Stale data possible
+
+**Code**:
+```csharp
+public async Task<User> GetUser(int id)
+{
+    // 1. Try cache
+    var cached = await cache.GetAsync($""user:{id}"");
+    if (cached != null) return cached;
+
+    // 2. Cache miss - fetch from DB
+    var user = await db.Users.FindAsync(id);
+
+    // 3. Update cache
+    await cache.SetAsync($""user:{id}"", user, TimeSpan.FromMinutes(10));
+
+    return user;
+}
+```
+
+### 2. Read-Through
+
+Cache sits between application and database. Cache handles DB fetch automatically.
+
+**Difference from Cache-Aside**: Application only talks to cache.
+
+**Pros**:
+- ✅ Simpler application code
+- ✅ Consistent caching logic
+
+**Cons**:
+- ❌ Tighter coupling to cache
+- ❌ Cache failure = system failure
+
+### 3. Write-Through
+
+**Flow**:
+1. Write to cache
+2. Cache writes to DB synchronously
+3. Return success
+
+**Pros**:
+- ✅ Cache always up-to-date
+- ✅ Data consistency
+
+**Cons**:
+- ❌ Slower writes (synchronous)
+- ❌ Writes to data never read
+
+**When**: Data must be consistent immediately
+
+### 4. Write-Behind (Write-Back)
+
+**Flow**:
+1. Write to cache
+2. Return success immediately
+3. Cache writes to DB asynchronously (batched)
+
+**Pros**:
+- ✅ Very fast writes
+- ✅ Can batch writes for efficiency
+- ✅ Reduces DB load
+
+**Cons**:
+- ❌ Risk of data loss if cache fails before sync
+- ❌ Complexity
+
+**When**: High write throughput, can tolerate some data loss
+
+### 5. Write-Around
+
+Write directly to DB, bypass cache. Remove from cache on write.
+
+**When**: Data written is rarely read again
+
+## Cache Eviction Policies
+
+### LRU (Least Recently Used)
+Evict item not accessed for longest time.
+- **Best for**: General purpose
+- **Implementation**: Linked list + hash map
+
+### LFU (Least Frequently Used)
+Evict item accessed least often.
+- **Best for**: Long-term access patterns
+
+### FIFO (First In, First Out)
+Evict oldest item.
+- **Best for**: Time-sensitive data
+
+### TTL (Time To Live)
+Items expire after time period.
+- **Best for**: Data with known freshness
+
+## Cache Invalidation
+
+**Two hardest problems in CS**:
+1. Cache invalidation
+2. Naming things
+3. Off-by-one errors
+
+### Strategies:
+
+#### TTL-Based
+Set expiration time. Simple but may serve stale data.
+
+#### Event-Based
+Invalidate cache on DB write.
+```csharp
+public async Task UpdateUser(User user)
+{
+    await db.SaveAsync(user);
+    await cache.RemoveAsync($""user:{user.Id}""); // Invalidate
+}
+```
+
+#### Tag-Based
+Cache items with tags, invalidate all items with tag.
+
+## Real-World Example: Social Media Feed
+
+```
+User requests feed:
+1. Check cache for feed (key: ""feed:user123"")
+2. If hit: Return cached feed ✅
+3. If miss:
+   - Fetch posts from DB
+   - Apply filters/ranking
+   - Cache result (TTL: 5 minutes)
+   - Return feed
+
+On new post:
+- Invalidate feed caches for followers
+- Or use write-behind to update caches asynchronously
+```
+
+## Common Pitfalls
+
+❌ **Caching everything**: Wastes memory
+❌ **No expiration**: Stale data forever
+❌ **Cache stampede**: Many requests miss cache simultaneously, all hit DB
+  - **Solution**: Use locks or pre-warm cache
+
+## Interview Tips
+
+**Q: How do you prevent cache stampede?**
+A:
+1. **Locking**: First request fetches, others wait
+2. **Pre-warming**: Populate cache before expiration
+3. **Probabilistic early expiration**: Refresh before actual expiration
+
+**Q: Redis vs Memcached?**
+A:
+- **Redis**: Data structures, persistence, pub/sub
+- **Memcached**: Simple, multi-threaded, pure cache",
+                Resources = "https://aws.amazon.com/caching/best-practices/",
+                Tags = new() { "Caching", "Performance", "Redis" }
+            },
+
+            new() {
+                Title = "Database Sharding - Horizontal Partitioning at Scale",
+                Category = "Database",
+                Difficulty = "Hard",
+                KeyConcepts = "Partition Key, Consistent Hashing, Cross-Shard Queries",
+                Lesson = @"# Database Sharding
+
+## What is Sharding?
+
+Splitting a large database into smaller, faster, more manageable pieces (shards). Each shard is an independent database.
+
+## Why Shard?
+
+**Problem**: Single database can't handle:
+- Billions of rows
+- Thousands of writes/second
+- Terabytes of data
+
+**Solution**: Distribute data across multiple databases.
+
+## Sharding Strategies
+
+### 1. Range-Based Sharding
+
+Partition by value ranges (e.g., user ID 1-1M → Shard 1, 1M-2M → Shard 2).
+
+**Pros**:
+- ✅ Simple to implement
+- ✅ Range queries work well
+
+**Cons**:
+- ❌ Uneven distribution (hotspots)
+- ❌ Hard to rebalance
+
+**Example**: Users A-M → Shard 1, N-Z → Shard 2
+
+### 2. Hash-Based Sharding
+
+Use hash function on shard key: `shard = hash(user_id) % num_shards`
+
+**Pros**:
+- ✅ Even distribution
+- ✅ No hotspots
+
+**Cons**:
+- ❌ Adding shards requires rehashing all data
+- ❌ Range queries impossible
+
+### 3. Consistent Hashing
+
+Maps data and nodes to ring. Adding/removing nodes only affects adjacent data.
+
+**Pros**:
+- ✅ Minimal data movement when scaling
+- ✅ Even distribution with virtual nodes
+
+**Cons**:
+- ❌ More complex
+- ❌ Range queries still hard
+
+### 4. Directory-Based Sharding
+
+Lookup table maps shard keys to shards.
+
+**Pros**:
+- ✅ Flexible (can change mapping)
+- ✅ Easy to rebalance
+
+**Cons**:
+- ❌ Lookup table is single point of failure
+- ❌ Extra hop for every query
+
+## Choosing a Shard Key
+
+**Critical decision!** Hard to change later.
+
+### Good Shard Key Characteristics:
+
+1. **High cardinality**: Many unique values
+   - ✅ `user_id` (millions of users)
+   - ❌ `country` (200 countries)
+
+2. **Even distribution**: No hotspots
+   - ✅ `user_id` (assuming even signup)
+   - ❌ `created_date` (recent data gets all writes)
+
+3. **Matches query patterns**
+   - If you query by `user_id` → shard by `user_id`
+
+### Bad Shard Key Examples:
+
+- **Timestamp**: Recent data gets all writes (hot shard)
+- **Status** (active/inactive): Uneven distribution
+- **Geography**: Some countries have way more users
+
+## Challenges
+
+### 1. Cross-Shard Queries
+
+**Problem**: `SELECT * FROM users WHERE age > 25`
+Must query all shards and merge results.
+
+**Solutions**:
+- Denormalize data
+- Use separate analytics database
+- Accept slower queries
+
+### 2. Joins Across Shards
+
+**Problem**: Can't join tables on different shards.
+
+**Solutions**:
+- Denormalize (duplicate data)
+- Application-level joins
+- Co-locate related data (shard by same key)
+
+### 3. Transactions Across Shards
+
+**Problem**: ACID transactions don't work across shards.
+
+**Solutions**:
+- Two-phase commit (slow, complex)
+- Sagas (eventual consistency)
+- Avoid cross-shard transactions by design
+
+### 4. Rebalancing
+
+**Problem**: Adding shards requires moving data.
+
+**Solutions**:
+- Use consistent hashing
+- Plan for oversharding (create more shards than needed initially)
+
+## Real-World Example: Instagram
+
+**Shard Key**: `user_id`
+- Photos sharded by user_id
+- All user's photos on same shard
+- Fast user timeline queries
+- Cross-user queries (global search) use separate system
+
+## Implementation Example
+
+```python
+# Simple hash-based sharding
+def get_shard(user_id, num_shards=4):
+    shard_id = hash(user_id) % num_shards
+    return f""shard_{shard_id}""
+
+# Route query to correct shard
+user_id = 12345
+shard = get_shard(user_id)
+connection = connect_to_shard(shard)
+result = connection.query(f""SELECT * FROM users WHERE id = {user_id}"")
+```
+
+## Interview Questions
+
+**Q: When do you introduce sharding?**
+A:
+1. Single DB hitting limits (CPU, RAM, disk)
+2. Can't vertically scale more
+3. Have well-defined access patterns
+
+**Q: Difference between sharding and partitioning?**
+A:
+- **Partitioning**: Splitting table within single DB
+- **Sharding**: Splitting across multiple DBs
+
+**Q: How to avoid cross-shard queries?**
+A:
+1. Denormalize data
+2. Choose shard key matching query patterns
+3. Use separate system for analytics",
+                Resources = "https://www.mongodb.com/features/database-sharding-explained",
+                Tags = new() { "Sharding", "Database", "Scalability", "Partitioning" }
+            }
+        };
+    }
 }
